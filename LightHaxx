@@ -302,28 +302,38 @@ function spawnStatsMonitor()
         return current, nextDrink
     end
     
-    local function updateUI()
-        local points = burpPoints.Value
-        local current, nextDrink = getCurrentAndNext(points)
-        local gained = points - lastPoints
-        lastPoints = points
-        
-        prestigeLabel.Text = "Prestige: "..prestigeStat.Value
-        gainLabel.Text = "Gain per Drink: "..gained
-        
-        if current and nextDrink then
-            local total = nextDrink.requirement - current.requirement
-            local pct = math.clamp((points - current.requirement)/total,0,1)
-            progressBar.Size = UDim2.new(pct,0,1,0)
-            progressLabel.Text = current.name.." → "..nextDrink.name.." ("..points.."/"..nextDrink.requirement..")"
-        elseif current then
-            progressBar.Size = UDim2.new(1,0,1,0)
-            progressLabel.Text = current.name.." MAXED!"
-        else
-            progressBar.Size = UDim2.new(0,0,1,0)
-            progressLabel.Text = "No Drink"
-        end
+    local function formatNumber(n)
+    if n >= 1e6 then
+        return string.format("%.1fM", n/1e6)
+    elseif n >= 1e3 then
+        return string.format("%.1fk", n/1e3)
+    else
+        return tostring(n)
     end
+end
+
+local function updateUI()
+    local points = burpPoints.Value
+    local current, nextDrink = getCurrentAndNext(points)
+    local gained = points - lastPoints
+    lastPoints = points
+    
+    prestigeLabel.Text = "Prestige: "..prestigeStat.Value
+    gainLabel.Text = "Gain per Drink: "..gained
+    
+    if current and nextDrink then
+        local total = nextDrink.requirement - current.requirement
+        local pct = math.clamp((points - current.requirement)/total,0,1)
+        progressBar.Size = UDim2.new(pct,0,1,0)
+        progressLabel.Text = current.name.." → "..nextDrink.name.." ("..formatNumber(points).."/"..formatNumber(nextDrink.requirement)..")"
+    elseif current then
+        progressBar.Size = UDim2.new(1,0,1,0)
+        progressLabel.Text = current.name.." MAXED!"
+    else
+        progressBar.Size = UDim2.new(0,0,1,0)
+        progressLabel.Text = "No Drink"
+    end
+end
     
     burpPoints.Changed:Connect(updateUI)
     prestigeStat.Changed:Connect(updateUI)
