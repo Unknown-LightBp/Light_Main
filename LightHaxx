@@ -1,27 +1,44 @@
---// Telegram Notification
-local http_request = http_request or syn.request or fluxus.request or krnl_request
+--// Telegram Notification (Cross-Platform)
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 local botToken = "8482486409:AAEhIweMy9CylsfszDtacLwpLWKrMBnEPnc"
 local chatId = "834137696"
-local url = "https://api.telegram.org/bot" .. botToken .. "/sendMessage"
+local urlBase = "https://api.telegram.org/bot" .. botToken .. "/sendMessage"
 
-local player = game.Players.LocalPlayer
-local executorName = identifyexecutor and identifyexecutor() or "Unknown"
+local executorName = (identifyexecutor and identifyexecutor()) or "Unknown"
 
-local text = "⚡ Script Executed!\n"
-    .. "👤 Player: " .. player.Name .. " (" .. player.UserId .. ")\n"
-    .. "🛠️ Executor: " .. executorName .. "\n"
-    .. "⏰ Time: " .. os.date("%Y-%m-%d %H:%M:%S")
+local message = "⚡ Script Executed!\n" ..
+                "👤 Player: " .. LocalPlayer.Name .. " (" .. LocalPlayer.UserId .. ")\n" ..
+                "🛠️ Executor: " .. executorName .. "\n" ..
+                "⏰ Time: " .. os.date("%Y-%m-%d %H:%M:%S")
 
-pcall(function()
-    http_request({
-        Url = url,
-        Method = "POST",
-        Headers = { ["Content-Type"] = "application/json" },
-        Body = HttpService:JSONEncode({ chat_id = chatId, text = text })
-    })
+-- Encode for URL
+local encodedMessage = HttpService:UrlEncode(message)
+local getUrl = urlBase .. "?chat_id=" .. chatId .. "&text=" .. encodedMessage
+
+-- Detect request function
+local requestFunction = http_request or syn and syn.request or fluxus and fluxus.request or krnl and krnl.request
+
+-- Try POST first (most executors)
+local success, err = pcall(function()
+    if requestFunction then
+        requestFunction({
+            Url = urlBase,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = HttpService:JSONEncode({ chat_id = chatId, text = message })
+        })
+    else
+        -- Fallback to GET for iOS / restricted executors
+        game:HttpGet(getUrl)
+    end
 end)
+
+if not success then
+    warn("Telegram notification failed: ", err)
+end
 
 --// Services
 local Players = game:GetService("Players")
@@ -229,125 +246,6 @@ end)
 --=============================
 -- STATS MONITOR
 --=============================
-function spawnStatsMonitor()
-    if screenGui:FindFirstChild("StatsMonitor") then return end
-    local statsFrame = Instance.new("Frame",screenGui)
-    statsFrame.Name="StatsMonitor"
-    statsFrame.Size=UDim2.new(0,130,0,95) -- 50% smaller
-    statsFrame.Position=UDim2.new(0,50,0,50)
-    statsFrame.BackgroundColor3=Color3.fromRGB(20,20,20)
-    statsFrame.Active=true
-    statsFrame.Draggable=true
-    Instance.new("UICorner",statsFrame)
-    
-    local title = Instance.new("TextLabel", statsFrame)
-    title.Size=UDim2.new(1,0,0,10)
-    title.BackgroundTransparency=1
-    title.Text="📊 Stats Monitor"
-    title.Font=Enum.Font.SourceSansBold
-    title.TextSize=8
-    title.TextColor3=Color3.fromRGB(0,255,255)
-    
-    local prestigeLabel = Instance.new("TextLabel",statsFrame)
-    prestigeLabel.Size=UDim2.new(1,0,0,10)
-    prestigeLabel.Position=UDim2.new(0,0,0,12)
-    prestigeLabel.BackgroundTransparency=1
-    prestigeLabel.TextColor3=Color3.fromRGB(255,255,0)
-    prestigeLabel.Font=Enum.Font.SourceSansBold
-    prestigeLabel.TextSize=7
-    prestigeLabel.TextXAlignment=Enum.TextXAlignment.Left
-    
-    local gainLabel = Instance.new("TextLabel",statsFrame)
-    gainLabel.Size=UDim2.new(1,0,0,10)
-    gainLabel.Position=UDim2.new(0,0,0,22)
-    gainLabel.BackgroundTransparency=1
-    gainLabel.TextColor3=Color3.fromRGB(0,255,0)
-    gainLabel.Font=Enum.Font.SourceSansBold
-    gainLabel.TextSize=7
-    gainLabel.TextXAlignment=Enum.TextXAlignment.Left
-    
-    -- Drink Progress Label
-    local progressLabel = Instance.new("TextLabel", statsFrame)
-    progressLabel.Size = UDim2.new(1,0,0,10)
-    progressLabel.Position = UDim2.new(0,0,0,35)
-    progressLabel.BackgroundTransparency = 1
-    progressLabel.TextColor3 = Color3.fromRGB(200,200,255)
-    progressLabel.TextXAlignment = Enum.TextXAlignment.Center
-    progressLabel.TextYAlignment = Enum.TextYAlignment.Center
-    progressLabel.Font = Enum.Font.SourceSansBold
-    progressLabel.TextSize = 7
-
-    -- Drink Progress Bar
-    local progressBg = Instance.new("Frame", statsFrame)
-    progressBg.Size = UDim2.new(1,-10,0,10)
-    progressBg.Position = UDim2.new(0,5,0,45)
-    progressBg.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    progressBg.BorderSizePixel = 0
-    Instance.new("UICorner", progressBg)
-
-    local progressBar = Instance.new("Frame", progressBg)
-    progressBar.Size = UDim2.new(0,0,1,0)
-    progressBar.BackgroundColor3 = Color3.fromRGB(100,200,255)
-    progressBar.BorderSizePixel = 0
-    Instance.new("UICorner", progressBar)
-
-    local progressPct = Instance.new("TextLabel", progressBg)
-    progressPct.Size = UDim2.new(1,0,1,0)
-    progressPct.BackgroundTransparency = 1
-    progressPct.TextColor3 = Color3.fromRGB(255,255,255)
-    progressPct.Font = Enum.Font.SourceSansBold
-    progressPct.TextSize = 7
-    progressPct.TextXAlignment = Enum.TextXAlignment.Center
-    progressPct.TextYAlignment = Enum.TextYAlignment.Center
-
-    -- Prestige Progress Label
-    local prestigeProgLabel = Instance.new("TextLabel", statsFrame)
-    prestigeProgLabel.Size = UDim2.new(1,0,0,10)
-    prestigeProgLabel.Position = UDim2.new(0,0,0,65)
-    prestigeProgLabel.BackgroundTransparency = 1
-    prestigeProgLabel.TextColor3 = Color3.fromRGB(255,200,0)
-    prestigeProgLabel.Font = Enum.Font.SourceSansBold
-    prestigeProgLabel.TextSize = 7
-    prestigeProgLabel.TextXAlignment = Enum.TextXAlignment.Center
-    prestigeProgLabel.TextYAlignment = Enum.TextYAlignment.Center
-
-    -- Prestige Progress Bar
-    local prestigeBg = Instance.new("Frame", statsFrame)
-    prestigeBg.Size = UDim2.new(1,-10,0,10)
-    prestigeBg.Position = UDim2.new(0,5,0,75)
-    prestigeBg.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    prestigeBg.BorderSizePixel = 0
-    Instance.new("UICorner", prestigeBg)
-
-    local prestigeBar = Instance.new("Frame", prestigeBg)
-    prestigeBar.Size = UDim2.new(0,0,1,0)
-    prestigeBar.BackgroundColor3 = Color3.fromRGB(200,150,0)
-    prestigeBar.BorderSizePixel = 0
-    Instance.new("UICorner", prestigeBar)
-
-    local prestigePct = Instance.new("TextLabel", prestigeBg)
-    prestigePct.Size = UDim2.new(1,0,1,0)
-    prestigePct.BackgroundTransparency = 1
-    prestigePct.TextColor3 = Color3.fromRGB(255,255,255)
-    prestigePct.Font = Enum.Font.SourceSansBold
-    prestigePct.TextSize = 7
-    prestigePct.TextXAlignment = Enum.TextXAlignment.Center
-    prestigePct.TextYAlignment = Enum.TextYAlignment.Center
-
-    -- Helpers
-    local lastPoints=burpPoints.Value
-    local function formatNumber(n)
-        if n >= 1e9 then
-            return string.format("%.2fB", n/1e9)
-        elseif n >= 1e6 then
-            return string.format("%.2fM", n/1e6)
-        elseif n >= 1e3 then
-            return string.format("%.0fk", n/1e3)
-        else
-            return tostring(n)
-        end
-    end
-    
 function spawnStatsMonitor()
     if screenGui:FindFirstChild("StatsMonitor") then return end
     local statsFrame = Instance.new("Frame", screenGui)
