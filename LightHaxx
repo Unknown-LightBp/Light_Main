@@ -469,18 +469,22 @@ task.spawn(function()
 end)
 
 -- Auto Drink
-local function GetCurrentDrink()
-    local char=LocalPlayer.Character
-    return char and char:FindFirstChildOfClass("Tool") and char:FindFirstChildOfClass("Tool").Name or nil
-end
-
 task.spawn(function()
     while task.wait(2.34) do
         if settings.autoDrink then
-            local drink=GetCurrentDrink()
-            if drink then
-                ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer(drink)
-            end
+            game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Starter Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Second Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Third Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Fourth Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Fifth Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Sixth Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Seventh Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Eighth Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Ninth Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Atomic Drink")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Omega Burp Juice")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Thunder Fizz")
+		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Garlic Juice")
         end
     end
 end)
@@ -497,22 +501,9 @@ end)
 -- Optimized Auto Gems (no teleport)
 task.spawn(function()
     while task.wait(0.5) do
-        if settings.autoGems then
-            local diamondsFolder = Workspace:FindFirstChild("Diamonds")
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if diamondsFolder and hrp then
-                for _, gem in pairs(diamondsFolder:GetChildren()) do
-                    if gem:IsA("BasePart") then
-                        pcall(function()
-                            firetouchinterest(hrp, gem, 0)
-                            task.wait(0.05)
-                            firetouchinterest(hrp, gem, 1)
-                        end)
-                    end
-                end
-            end
-        end
+       local gem = game.Workspace.Diamonds:WaitForChild("Diamond")
+		local Char = game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+		gem.CFrame = Char.CFrame
     end
 end)
 
@@ -537,17 +528,18 @@ do
         end
     end)
 
-    local mt = getrawmetatable(game)
-    local old = mt.__namecall
-    local protect = newcclosure or protect_function
-    setreadonly(mt,false)
-    mt.__namecall = protect(function(self,...)
-        local method = getnamecallmethod()
-        if settings.antiKick and (method=="Kick" or method=="kick") then
-            warn("Prevented kick")
-            return
-        end
-        return old(self,...)
-    end)
-    hookfunction(LocalPlayer.Kick, protect(function() if settings.antiKick then warn("Prevented kick") end end))
+   local mt = getrawmetatable(game)
+	local old = mt.__namecall
+	local protect = newcclosure or protect_function
+
+	setreadonly(mt, false)
+	mt.__namecall = protect(function(self, ...)
+		local method = getnamecallmethod()
+		if method == "Kick" then
+			wait(9e9)
+			return
+		end
+		return old(self, ...)
+	end)
+	hookfunction(game.Players.LocalPlayer.Kick,protect(function() wait(9e9) end))
 end
