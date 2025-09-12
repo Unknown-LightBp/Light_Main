@@ -439,29 +439,31 @@ end
 -- AUTO FUNCTIONS
 --=============================
 
--- Auto Equip
+-- Auto Equip (retry every 1s, works after death)
 task.spawn(function()
-    local lastDrink=nil
     while task.wait(1) do
         if settings.autoEquip then
-            local points=burpPoints.Value
-            local char=LocalPlayer.Character
-            local humanoid=char and char:FindFirstChildOfClass("Humanoid")
+            local points = burpPoints.Value
+            local char = LocalPlayer.Character
+            local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+
             if humanoid then
+                -- Find best drink you qualify for
                 local chosen
-                for _,d in ipairs(drinks) do
-                    if points>=d.requirement then chosen=d.name end
+                for _, d in ipairs(drinks) do
+                    if points >= d.requirement then
+                        chosen = d.name
+                    end
                 end
-                if chosen and chosen~=lastDrink then
-                    local tool=LocalPlayer.Backpack:FindFirstChild(chosen)
+
+                if chosen then
+                    -- Look for the drink in Backpack
+                    local tool = LocalPlayer.Backpack:FindFirstChild(chosen)
                     if tool then
                         humanoid:EquipTool(tool)
-                        lastDrink=chosen
                     end
                 end
             end
-        else
-            lastDrink=nil
         end
     end
 end)
