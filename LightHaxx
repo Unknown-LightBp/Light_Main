@@ -66,8 +66,8 @@ local settings = {
 --// Drinks progression (fix thresholds)
 local drinks = {
     {name="Starter Drink", requirement=0},
-    {name="Second Drink", requirement=550},
-    {name="Third Drink", requirement=1165},
+    {name="Second Drink", requirement=150},
+    {name="Third Drink", requirement=500},
     {name="Fourth Drink", requirement=1600},
     {name="Fifth Drink", requirement=3500},
     {name="Sixth Drink", requirement=10000},
