@@ -501,9 +501,11 @@ end)
 -- Optimized Auto Gems (no teleport)
 task.spawn(function()
     while task.wait(0.5) do
+      if setting.autoGems then
        local gem = game.Workspace.Diamonds:WaitForChild("Diamond")
 		local Char = game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart")
 		gem.CFrame = Char.CFrame
+      end
     end
 end)
 
