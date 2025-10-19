@@ -58,6 +58,10 @@ local settings = {
     autoPrestige = false,
     autoGems = false,
     safeSpawn = false,
+    speedBoost = false,
+    walkOnWater = false,
+    nightMode = false,
+    infiniteJump = false,
     antiAFK = false,
     antiKick = false,
     showStatsUI = false
@@ -506,6 +510,150 @@ task.spawn(function()
 		local Char = game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart")
 		gem.CFrame = Char.CFrame
       end
+    end
+end)
+
+-- Speed Boost Toggle (continuous enforcement)
+local originalSpeed = nil
+
+createToggle(sections.System, "Speed Boost", "speedBoost", function(on)
+    local function applySpeed()
+        local char = LocalPlayer.Character
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+
+        if on then
+            -- Save original speed only once
+            if originalSpeed == nil then
+                originalSpeed = humanoid.WalkSpeed
+            end
+            humanoid.WalkSpeed = 700
+        else
+            -- Restore original speed
+            if originalSpeed then
+                humanoid.WalkSpeed = originalSpeed
+                originalSpeed = nil
+            end
+        end
+    end
+
+    -- Apply immediately
+    applySpeed()
+
+    -- Continuously enforce speed while toggle is ON
+    if on then
+        -- Spawn a loop that keeps WalkSpeed at 700
+        spawn(function()
+            while settings.speedBoost do
+                local char = LocalPlayer.Character
+                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = 700
+                end
+                task.wait(0.1) -- adjust interval if needed
+            end
+        end)
+    end
+end)
+
+-- Reapply speed on respawn if toggle is ON
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    if settings.speedBoost then
+        local humanoid = char:WaitForChild("Humanoid",5)
+        if humanoid then
+            if originalSpeed == nil then
+                originalSpeed = humanoid.WalkSpeed
+            end
+            humanoid.WalkSpeed = 700
+        end
+    end
+end)
+
+-- Night Mode Toggle
+createToggle(sections.System, "Night Mode", "nightMode", function(on)
+    local Lighting = game:GetService("Lighting")
+
+    if on then
+        -- Set the game time to night
+        Lighting.ClockTime = 20  -- 8 PM
+    else
+        -- Reset to default day time (you can adjust as needed)
+        Lighting.ClockTime = 14  -- 2 PM default
+    end
+end)
+
+-- Walk on Water Toggle
+createToggle(sections.System, "Walk On Water", "walkOnWater", function(on)
+    -- Function to apply Walk on Water
+    local function applyWalkOnWater()
+        -- Enable CanCollide for parts named "Part"
+        for _, obj in pairs(game.Workspace:GetChildren()) do
+            if obj:IsA("BasePart") and obj.Name == "Part" then
+                obj.CanCollide = true
+            end
+        end
+
+        -- Disable CanCollide for BorderWalls
+        local borderWalls = game.Workspace:FindFirstChild("BorderWalls")
+        if borderWalls then
+            for _, obj in pairs(borderWalls:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    obj.CanCollide = false
+                end
+            end
+        else
+            warn("BorderWalls model not found in Workspace!")
+        end
+    end
+
+    -- Apply immediately if toggled on
+    if on then
+        applyWalkOnWater()
+    else
+        -- If toggled off, reset CanCollide (optional: restores default behavior)
+        for _, obj in pairs(game.Workspace:GetChildren()) do
+            if obj:IsA("BasePart") and obj.Name == "Part" then
+                obj.CanCollide = true
+            end
+        end
+        local borderWalls = game.Workspace:FindFirstChild("BorderWalls")
+        if borderWalls then
+            for _, obj in pairs(borderWalls:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    obj.CanCollide = true
+                end
+            end
+        end
+    end
+end)
+
+-- Optional: automatically reapply if parts are added dynamically
+game.Workspace.DescendantAdded:Connect(function(obj)
+    if settings.walkOnWater and obj:IsA("BasePart") then
+        if obj.Name == "Part" then
+            obj.CanCollide = true
+        elseif obj.Parent and obj.Parent.Name == "BorderWalls" then
+            obj.CanCollide = false
+        end
+    end
+end)
+
+-- Infinite Jump Toggle
+createToggle(sections.System,"Infinite Jump","infiniteJump",function(on)
+    -- Nothing needs to happen here on toggle click, the input connection will check the setting
+end)
+
+-- Connect JumpRequest to enable infinite jump
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if settings.infiniteJump then
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState("Jumping")
+            end
+        end
     end
 end)
 
