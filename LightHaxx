@@ -504,7 +504,7 @@ end)
 
 -- Optimized Auto Gems (no teleport)
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.1) do
       if setting.autoGems then
        local gem = game.Workspace.Diamonds:WaitForChild("Diamond")
 		local Char = game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart")
