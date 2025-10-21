@@ -502,14 +502,25 @@ task.spawn(function()
     end
 end)
 
--- Optimized Auto Gems (no teleport)
+-- Auto Gems
 task.spawn(function()
-    while task.wait(0.1) do
-      if setting.autoGems then
-       local gem = game.Workspace.Diamonds:WaitForChild("Diamond")
-		local Char = game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-		gem.CFrame = Char.CFrame
-      end
+    while task.wait(0.3) do
+        if settings.autoGems then
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                local diamondsFolder = workspace:FindFirstChild("Diamonds")
+                if diamondsFolder then
+                    for _, gem in ipairs(diamondsFolder:GetChildren()) do
+                        if gem:IsA("BasePart") then
+                            -- Anchor gem locally and move it to player
+                            gem.Anchored = true
+                            gem.CFrame = root.CFrame * CFrame.new(0, 0, -2) -- offset behind player
+                        end
+                    end
+                end
+            end
+        end
     end
 end)
 
