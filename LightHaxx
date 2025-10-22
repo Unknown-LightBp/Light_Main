@@ -215,34 +215,177 @@ end)
 
 -- Tab switching
 for tabName,btn in pairs(tabButtons) do
+--=============================
+-- MAIN UI
+--=============================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HaxxUI"
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0,350,0,250)
+mainFrame.Position = UDim2.new(0.5,-175,0.5,-125)
+mainFrame.BackgroundColor3 = Color3.fromRGB(75,0,130) -- violet
+mainFrame.BackgroundTransparency = 0.6 -- semi-transparent
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+Instance.new("UICorner", mainFrame)
+
+-- Violet outline
+local outline = Instance.new("UIStroke", mainFrame)
+outline.Thickness = 2
+outline.Color = Color3.fromRGB(148,0,211) -- violet
+outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- Minimize button
+local minimized=false
+local minimizeBtn = Instance.new("TextButton", mainFrame)
+minimizeBtn.Size = UDim2.new(0,30,0,30)
+minimizeBtn.Position = UDim2.new(1,-35,0,5)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(50,0,100) -- darker violet
+minimizeBtn.BackgroundTransparency = 0.4
+minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+minimizeBtn.Text = "-"
+Instance.new("UICorner",minimizeBtn)
+
+-- Content container (all UI goes here)
+local contentContainer = Instance.new("Frame", mainFrame)
+contentContainer.Size = UDim2.new(1,0,1,0)
+contentContainer.Position = UDim2.new(0,0,0,0)
+contentContainer.BackgroundTransparency = 1
+
+-- Title
+local titleLabel = Instance.new("TextLabel", contentContainer)
+titleLabel.Size = UDim2.new(1,0,0,30)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Haxx By Light"
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 20
+titleLabel.TextColor3 = Color3.fromRGB(0,255,255)
+
+-- Tabs
+local tabs = {"Main","System","Protection","Stats"}
+local tabButtons, sections = {}, {}
+local activeTab = "Main"
+
+local tabBar = Instance.new("Frame", contentContainer)
+tabBar.Size = UDim2.new(1,0,0,30)
+tabBar.Position = UDim2.new(0,0,0,30)
+tabBar.BackgroundTransparency = 1
+local tabLayout = Instance.new("UIListLayout", tabBar)
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+
+for i, tabName in ipairs(tabs) do
+    local btn = Instance.new("TextButton", tabBar)
+    btn.Size = UDim2.new(1/#tabs,0,1,0)
+    btn.BackgroundColor3 = Color3.fromRGB(120,0,200) -- violet buttons
+    btn.BackgroundTransparency = 0.3
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Text = tabName
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn)
+    tabButtons[tabName] = btn
+end
+
+local contentFrame = Instance.new("Frame", contentContainer)
+contentFrame.Size = UDim2.new(1,-10,1,-70)
+contentFrame.Position = UDim2.new(0,5,0,65)
+contentFrame.BackgroundTransparency = 1
+
+for _, tabName in ipairs(tabs) do
+    local sec = Instance.new("Frame", contentFrame)
+    sec.Size = UDim2.new(1,0,1,0)
+    sec.BackgroundTransparency = 1
+    sec.Visible = (tabName=="Main")
+    sections[tabName] = sec
+end
+
+-- Toggle helper
+local function createToggle(parent,text,settingKey,callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1,0,0,30)
+    btn.BackgroundColor3 = Color3.fromRGB(120,0,200)
+    btn.BackgroundTransparency = 0.3
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.Text = text.." ❎"
+    Instance.new("UICorner", btn)
+    
+    btn.MouseButton1Click:Connect(function()
+        settings[settingKey] = not settings[settingKey]
+        btn.Text = text.." "..(settings[settingKey] and "✅" or "❎")
+        btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(180,0,255) or Color3.fromRGB(120,0,200)
+        if callback then callback(settings[settingKey]) end
+    end)
+end
+
+local function addLayout(frame)
+    local layout = Instance.new("UIListLayout", frame)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0,5)
+end
+
+-- Fill sections
+addLayout(sections.Main)
+createToggle(sections.Main,"Auto Drink","autoDrink")
+createToggle(sections.Main,"Auto Equip","autoEquip")
+createToggle(sections.Main,"Auto Prestige","autoPrestige")
+createToggle(sections.Main,"Auto Gems","autoGems")
+
+addLayout(sections.System)
+createToggle(sections.System,"Safe Spawn","safeSpawn")
+
+addLayout(sections.Protection)
+createToggle(sections.Protection,"Anti AFK","antiAFK")
+createToggle(sections.Protection,"Anti Kick","antiKick")
+
+-- Infinite Yield button
+local iyBtn = Instance.new("TextButton", sections.Protection)
+iyBtn.Size = UDim2.new(1,0,0,30)
+iyBtn.BackgroundColor3 = Color3.fromRGB(120,0,200)
+iyBtn.BackgroundTransparency = 0.3
+iyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+iyBtn.Font = Enum.Font.SourceSansBold
+iyBtn.TextSize = 16
+iyBtn.Text = "Load Infinite Yield"
+Instance.new("UICorner", iyBtn)
+iyBtn.MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+end)
+
+-- Stats toggle
+addLayout(sections.Stats)
+createToggle(sections.Stats,"Show Stats Monitor","showStatsUI",function(on)
+    if on then
+        spawnStatsMonitor()
+    else
+        local existing = screenGui:FindFirstChild("StatsMonitor")
+        if existing then existing:Destroy() end
+    end
+end)
+
+-- Tab switching
+for tabName,btn in pairs(tabButtons) do
     btn.MouseButton1Click:Connect(function()
         activeTab = tabName
         for n,s in pairs(sections) do s.Visible=(n==tabName) end
     end)
 end
 
--- Minimize
-local minimized=false
-local minimizeBtn = Instance.new("TextButton", mainFrame)
-minimizeBtn.Size = UDim2.new(0,30,0,30)
-minimizeBtn.Position = UDim2.new(1,-35,0,5)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
-minimizeBtn.Text = "-"
-Instance.new("UICorner",minimizeBtn)
+-- Minimize logic
 minimizeBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,60,0,30)}):Play()
-        titleLabel.Visible=false
-        tabBar.Visible=false
-        for _,sec in pairs(sections) do sec.Visible=false end
-    else
-        TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,350,0,250)}):Play()
-        titleLabel.Visible=true
-        tabBar.Visible=true
-        sections[activeTab].Visible=true
-    end
+	minimized = not minimized
+	if minimized then
+		TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,60,0,30)}):Play()
+		contentContainer.Visible = false
+	else
+		TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,350,0,250)}):Play()
+		contentContainer.Visible = true
+	end
 end)
 
 --=============================
