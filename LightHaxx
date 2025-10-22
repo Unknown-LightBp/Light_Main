@@ -2,513 +2,230 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
-
-local HttpService = game:GetService("HttpService")
-local UserInputService = game:GetService("UserInputService")
-local PlaceName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
-
-
+local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 local LocalPlayer = Players.LocalPlayer
 
---// Your Discord webhook
-local webhookUrl = "https://discord.com/api/webhooks/1415889296501768212/_Y-XywyaEtBG3pd3yAP89jv-X3fc4h0jIgcz7sNTSHJfbwWf6llW2B4PMgX8Kr1-5FMq"
-
---// Function to send Embed to Discord
-local function sendToDiscord(playerName, userId)
-    local data = {
-        embeds = {{
-            title = "🔔 Login Detected",
-            color = 3447003, -- Blue
-            thumbnail = { url = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. userId .. "&width=150&height=150&format=png" },
-            fields = {
-                { name = "👤 Player", value = playerName, inline = true },
-                { name = "🆔 UserId", value = tostring(userId), inline = true },
-                { name = "🎮 Game", value = PlaceName .. " (" .. game.PlaceId .. ")", inline = false },
-                { name = "📅 Time", value = os.date("%Y-%m-%d %H:%M:%S"), inline = false },
-                { name = "📱 Device", value = (UserInputService.TouchEnabled and "Mobile" or "PC"), inline = true },
-            }
-        }}
-    }
-
-    local request = (http_request or request or syn.request or fluxus.request or krnl_request)
-    if request then
-        request({
-            Url = webhookUrl,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(data)
-        })
-    end
-end
-
---// Trigger when script runs
-sendToDiscord(LocalPlayer.Name, LocalPlayer.UserId)
-
---// Leaderstats
+--// Vars
 local leaderstats = LocalPlayer:WaitForChild("leaderstats")
 local burpPoints = leaderstats:WaitForChild("Burp points")
 local prestigeStat = leaderstats:WaitForChild("Prestige")
 
---// Settings
-local settings = {
-    autoDrink = false,
-    autoEquip = false,
-    autoPrestige = false,
-    autoGems = false,
-    safeSpawn = false,
-    speedBoost = false,
-    walkOnWater = false,
-    nightMode = false,
-    infiniteJump = false,
-    antiAFK = false,
-    antiKick = false,
-    showStatsUI = false
-}
-
---// Drinks progression (fix thresholds)
-local drinks = {
-    {name="Starter Drink", requirement=0},
-    {name="Second Drink", requirement=150},
-    {name="Third Drink", requirement=500},
-    {name="Fourth Drink", requirement=1600},
-    {name="Fifth Drink", requirement=3500},
-    {name="Sixth Drink", requirement=10000},
-    {name="Seventh Drink", requirement=25000},
-    {name="Eighth Drink", requirement=60000},
-    {name="Ninth Drink", requirement=150000},
-    {name="Atomic Drink", requirement=230000},
-    {name="Omega Burp Juice", requirement=500000},
-    {name="Thunder Fizz", requirement=1000000},
-    {name="Garlic Juice", requirement=2000000},
-}
-
---// Safe Spawn
-local safeSpawnCoords = Vector3.new(-56.8589592, 47.532795, -25.2509499)
-
---=============================
--- MAIN UI
---=============================
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "HaxxUI"
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
-
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0,350,0,250)
-mainFrame.Position = UDim2.new(0.5,-175,0.5,-125)
-mainFrame.BackgroundColor3 = Color3.fromRGB(75,0,130) -- violet
-mainFrame.BackgroundTransparency = 0.6 -- semi-transparent
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-Instance.new("UICorner", mainFrame)
-
--- Violet outline
-local outline = Instance.new("UIStroke", mainFrame)
-outline.Thickness = 2
-outline.Color = Color3.fromRGB(148,0,211) -- violet
-outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
--- Minimize button
-local minimized=false
-local minimizeBtn = Instance.new("TextButton", mainFrame)
-minimizeBtn.Size = UDim2.new(0,30,0,30)
-minimizeBtn.Position = UDim2.new(1,-35,0,5)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(50,0,100) -- darker violet
-minimizeBtn.BackgroundTransparency = 0.4
-minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
-minimizeBtn.Text = "-"
-Instance.new("UICorner",minimizeBtn)
-
--- Content container (all UI goes here)
-local contentContainer = Instance.new("Frame", mainFrame)
-contentContainer.Size = UDim2.new(1,0,1,0)
-contentContainer.Position = UDim2.new(0,0,0,0)
-contentContainer.BackgroundTransparency = 1
-
--- Title
-local titleLabel = Instance.new("TextLabel", contentContainer)
-titleLabel.Size = UDim2.new(1,0,0,30)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Haxx By Light"
-titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.TextSize = 20
-titleLabel.TextColor3 = Color3.fromRGB(0,255,255)
-
--- Tabs
-local tabs = {"Main","System","Protection","Stats"}
-local tabButtons, sections = {}, {}
-local activeTab = "Main"
-
-local tabBar = Instance.new("Frame", contentContainer)
-tabBar.Size = UDim2.new(1,0,0,30)
-tabBar.Position = UDim2.new(0,0,0,30)
-tabBar.BackgroundTransparency = 1
-local tabLayout = Instance.new("UIListLayout", tabBar)
-tabLayout.FillDirection = Enum.FillDirection.Horizontal
-
-for i, tabName in ipairs(tabs) do
-    local btn = Instance.new("TextButton", tabBar)
-    btn.Size = UDim2.new(1/#tabs,0,1,0)
-    btn.BackgroundColor3 = Color3.fromRGB(120,0,200) -- violet buttons
-    btn.BackgroundTransparency = 0.3
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Text = tabName
-    btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn)
-    tabButtons[tabName] = btn
+--// Rainbow function
+local function rainbowColor(speed)
+    return Color3.fromHSV((tick() * speed) % 1, 1, 1)
 end
 
-local contentFrame = Instance.new("Frame", contentContainer)
-contentFrame.Size = UDim2.new(1,-10,1,-70)
-contentFrame.Position = UDim2.new(0,5,0,65)
-contentFrame.BackgroundTransparency = 1
-
-for _, tabName in ipairs(tabs) do
-    local sec = Instance.new("Frame", contentFrame)
-    sec.Size = UDim2.new(1,0,1,0)
-    sec.BackgroundTransparency = 1
-    sec.Visible = (tabName=="Main")
-    sections[tabName] = sec
-end
-
--- Toggle helper
-local function createToggle(parent,text,settingKey,callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1,0,0,30)
-    btn.BackgroundColor3 = Color3.fromRGB(120,0,200)
-    btn.BackgroundTransparency = 0.3
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 16
-    btn.Text = text.." ❎"
-    Instance.new("UICorner", btn)
-    
-    btn.MouseButton1Click:Connect(function()
-    settings[settingKey] = not settings[settingKey]
-    btn.Text = text.." "..(settings[settingKey] and "✅" or "❎")
-    btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(180,0,255) or Color3.fromRGB(120,0,200)
-    saveSettings() -- Save immediately after toggle
-    if callback then callback(settings[settingKey]) end
-   end)
-end
-
-local function addLayout(frame)
-    local layout = Instance.new("UIListLayout", frame)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0,5)
-end
-
--- Fill sections
-addLayout(sections.Main)
-createToggle(sections.Main,"Auto Drink","autoDrink")
-createToggle(sections.Main,"Auto Equip","autoEquip")
-createToggle(sections.Main,"Auto Prestige","autoPrestige")
-createToggle(sections.Main,"Auto Gems","autoGems")
-
-addLayout(sections.System)
-createToggle(sections.System,"Safe Spawn","safeSpawn")
-
-addLayout(sections.Protection)
-createToggle(sections.Protection,"Anti AFK","antiAFK")
-createToggle(sections.Protection,"Anti Kick","antiKick")
-
--- Infinite Yield button
-local iyBtn = Instance.new("TextButton", sections.Protection)
-iyBtn.Size = UDim2.new(1,0,0,30)
-iyBtn.BackgroundColor3 = Color3.fromRGB(120,0,200)
-iyBtn.BackgroundTransparency = 0.3
-iyBtn.TextColor3 = Color3.fromRGB(255,255,255)
-iyBtn.Font = Enum.Font.SourceSansBold
-iyBtn.TextSize = 16
-iyBtn.Text = "Load Infinite Yield"
-Instance.new("UICorner", iyBtn)
-iyBtn.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-end)
-
--- Stats toggle
-addLayout(sections.Stats)
-createToggle(sections.Stats,"Show Stats Monitor","showStatsUI",function(on)
-    if on then
-        spawnStatsMonitor()
+--// Number formatting (for progress bar only)
+local function formatNumber(n)
+    if n >= 1e9 then
+        return string.format("%.2fB", n / 1e9)
+    elseif n >= 1e6 then
+        return string.format("%.2fM", n / 1e6)
+    elseif n >= 1e3 then
+        return string.format("%.2fK", n / 1e3)
     else
-        local existing = screenGui:FindFirstChild("StatsMonitor")
-        if existing then existing:Destroy() end
+        return tostring(n)
+    end
+end
+
+--// UI Setup
+local function createUI()
+    local function safeCreate()
+        if not LocalPlayer:FindFirstChild("PlayerGui") then
+            return false
+        end
+        if LocalPlayer.PlayerGui:FindFirstChild("AutoSystemUI") then
+            LocalPlayer.PlayerGui.AutoSystemUI:Destroy()
+        end
+
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "AutoSystemUI"
+        screenGui.ResetOnSpawn = false
+        screenGui.IgnoreGuiInset = true
+        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+        local function makeLabel(text, posY, color, size, width)
+            local lbl = Instance.new("TextLabel")
+            lbl.Text = text
+            lbl.Size = UDim2.new(0, width or 220, 0, size or 18) -- shorter width
+            lbl.Position = UDim2.new(0.02, 0, 0.18, posY)
+            lbl.BackgroundTransparency = 1
+            lbl.TextColor3 = color or Color3.fromRGB(0, 255, 0)
+            lbl.Font = Enum.Font.SourceSansBold
+            lbl.TextSize = size or 16
+            lbl.TextXAlignment = Enum.TextXAlignment.Left
+            lbl.Parent = screenGui
+            return lbl
+        end
+
+        makeLabel("Automatic By Light", 0, Color3.fromRGB(0, 255, 0), 20, 220)
+        makeLabel("Auto Drink ✅", 22, Color3.fromRGB(0, 255, 0), 18, 220)
+        makeLabel("Auto Equip ✅", 40, Color3.fromRGB(0, 255, 0), 18, 220)
+        makeLabel("Auto Rejoin ✅", 58, Color3.fromRGB(0, 255, 0), 18, 220)
+        makeLabel("Auto Prestige ✅", 76, Color3.fromRGB(0, 255, 0), 18, 220)
+        makeLabel("Auto Gem Collect ✅", 94, Color3.fromRGB(0, 255, 0), 18, 220)
+        makeLabel("Anti AFK & Anti Kick ✅", 112, Color3.fromRGB(0, 255, 0), 18, 220)
+        local gainLabel = makeLabel("Gain/Drink: 0 | Prestige: 0", 130, Color3.fromRGB(255, 0, 0), 18, 220)
+
+        -- Prestige Progress Title
+        local progressTitle = Instance.new("TextLabel")
+        progressTitle.Text = "Prestige Progress"
+        progressTitle.Size = UDim2.new(0, 220, 0, 18)
+        progressTitle.Position = UDim2.new(0.02, 0, 0.18, 150)
+        progressTitle.BackgroundTransparency = 1
+        progressTitle.TextColor3 = Color3.fromRGB(0, 255, 0)
+        progressTitle.Font = Enum.Font.SourceSansBold
+        progressTitle.TextSize = 16
+        progressTitle.TextXAlignment = Enum.TextXAlignment.Left
+        progressTitle.Parent = screenGui
+
+        -- Progress Bar Background
+        local progressBarBG = Instance.new("Frame")
+        progressBarBG.Size = UDim2.new(0, 220, 0, 10) -- shorter and half height
+        progressBarBG.Position = UDim2.new(0.02, 0, 0.18, 170)
+        progressBarBG.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        progressBarBG.BorderSizePixel = 1
+        progressBarBG.Parent = screenGui
+
+        -- Progress Bar Fill
+        local progressBarFill = Instance.new("Frame")
+        progressBarFill.Size = UDim2.new(0, 0, 1, 0)
+        progressBarFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        progressBarFill.BorderSizePixel = 0
+        progressBarFill.Parent = progressBarBG
+
+        -- Progress Text inside bar
+        local progressText = Instance.new("TextLabel")
+        progressText.Size = UDim2.new(1, 0, 1, 0)
+        progressText.BackgroundTransparency = 1
+        progressText.TextColor3 = Color3.fromRGB(0, 0, 0) 
+        progressText.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
+        progressText.TextStrokeTransparency = 0
+        progressText.Font = Enum.Font.SourceSansBold
+        progressText.TextSize = 14
+        progressText.Text = "0 / 0 (0%)"
+        progressText.Parent = progressBarBG
+
+        return {
+            gainLabel = gainLabel,
+            progressBarFill = progressBarFill,
+            progressText = progressText
+        }
+    end
+
+    local uiRefs
+    repeat
+        local success, refs = pcall(safeCreate)
+        if success and refs then
+            uiRefs = refs
+        else
+            task.wait(1)
+        end
+    until uiRefs
+
+    return uiRefs
+end
+
+-- Create UI
+local uiRefs = createUI()
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    uiRefs = createUI()
+end)
+
+--// Gain & Prestige tracker
+local lastPoints = burpPoints.Value
+local gainPerDrink = 0
+local function updateGainLabel()
+    if uiRefs.gainLabel then
+        uiRefs.gainLabel.Text = "Gain/Drink: "..gainPerDrink.." | Prestige: "..prestigeStat.Value
+    end
+end
+
+burpPoints.Changed:Connect(function(newValue)
+    local diff = newValue - lastPoints
+    if diff > 0 then
+        gainPerDrink = diff
+        updateGainLabel()
+    end
+    lastPoints = newValue
+end)
+
+prestigeStat.Changed:Connect(updateGainLabel)
+
+-- Prestige Progress Update
+local function updatePrestigeProgress()
+    local currentPrestige = prestigeStat.Value
+    local requirement = 45000 + (currentPrestige * 4500)
+    local currentPoints = burpPoints.Value
+    local percent = math.min(100, (currentPoints / requirement) * 100)
+
+    if uiRefs.progressBarFill then
+        uiRefs.progressBarFill.Size = UDim2.new(math.clamp(currentPoints / requirement, 0, 1), 0, 1, 0)
+    end
+    if uiRefs.progressText then
+        uiRefs.progressText.Text = string.format("%s / %s (%.1f%%)",
+            formatNumber(currentPoints),
+            formatNumber(requirement),
+            percent)
+    end
+end
+
+burpPoints.Changed:Connect(updatePrestigeProgress)
+prestigeStat.Changed:Connect(updatePrestigeProgress)
+updatePrestigeProgress()
+
+-- Rainbow Gain Label
+RunService.Heartbeat:Connect(function()
+    if uiRefs.gainLabel then
+        uiRefs.gainLabel.TextColor3 = rainbowColor(0.5)
     end
 end)
 
--- Tab switching
-for tabName,btn in pairs(tabButtons) do
-    btn.MouseButton1Click:Connect(function()
-        activeTab = tabName
-        for n,s in pairs(sections) do s.Visible=(n==tabName) end
-    end)
+--// Helper
+local function WaitForCharacter()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart", 10)
+    return char, hrp
 end
 
--- Minimize logic
-minimizeBtn.MouseButton1Click:Connect(function()
-	minimized = not minimized
-	if minimized then
-		TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,60,0,30)}):Play()
-		contentContainer.Visible = false
-	else
-		TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,350,0,250)}):Play()
-		contentContainer.Visible = true
-	end
-end)
-
---=============================
--- STATS MONITOR
---=============================
-function spawnStatsMonitor()
-    if screenGui:FindFirstChild("StatsMonitor") then return end
-    local statsFrame = Instance.new("Frame", screenGui)
-    statsFrame.Name = "StatsMonitor"
-    statsFrame.Size = UDim2.new(0,130,0,95) -- 50% smaller
-    statsFrame.Position = UDim2.new(0,50,0,50)
-    statsFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    statsFrame.Active = true
-    statsFrame.Draggable = true
-    Instance.new("UICorner", statsFrame)
-
-    -- Rainbow Outline
-    local outline = Instance.new("UIStroke", statsFrame)
-    outline.Thickness = 2
-    outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-    -- Animate rainbow colors
-    task.spawn(function()
-        while statsFrame and statsFrame.Parent do
-            for i = 0, 1, 0.01 do
-                -- Convert hue (0-1) to RGB
-                local color = Color3.fromHSV(i, 1, 1)
-                outline.Color = color
-                task.wait(0.05) -- Speed of color change (lower = faster)
-            end
-        end
-    end)
-
-    -- Title
-    local title = Instance.new("TextLabel", statsFrame)
-    title.Size = UDim2.new(1,0,0,10)
-    title.Position = UDim2.new(0,0,0,0)
-    title.BackgroundTransparency = 1
-    title.Text = "📊 Stats Monitor"
-    title.Font = Enum.Font.SourceSansBold
-    title.TextSize = 8
-    title.TextColor3 = Color3.fromRGB(0,255,255)
-
-    -- Prestige count (RAW)
-    local prestigeLabel = Instance.new("TextLabel", statsFrame)
-    prestigeLabel.Size = UDim2.new(1,0,0,10)
-    prestigeLabel.Position = UDim2.new(0,0,0,12)
-    prestigeLabel.BackgroundTransparency = 1
-    prestigeLabel.TextColor3 = Color3.fromRGB(255,255,0)
-    prestigeLabel.Font = Enum.Font.SourceSansBold
-    prestigeLabel.TextSize = 7
-    prestigeLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Gain per drink (RAW)
-    local gainLabel = Instance.new("TextLabel", statsFrame)
-    gainLabel.Size = UDim2.new(1,0,0,10)
-    gainLabel.Position = UDim2.new(0,0,0,22)
-    gainLabel.BackgroundTransparency = 1
-    gainLabel.TextColor3 = Color3.fromRGB(0,255,0)
-    gainLabel.Font = Enum.Font.SourceSansBold
-    gainLabel.TextSize = 7
-    gainLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Drink Progress label (above bar)
-    local progressLabel = Instance.new("TextLabel", statsFrame)
-    progressLabel.Size = UDim2.new(1,0,0,10)
-    progressLabel.Position = UDim2.new(0,0,0,35)
-    progressLabel.BackgroundTransparency = 1
-    progressLabel.TextColor3 = Color3.fromRGB(200,200,255)
-    progressLabel.TextXAlignment = Enum.TextXAlignment.Center
-    progressLabel.TextYAlignment = Enum.TextYAlignment.Center
-    progressLabel.Font = Enum.Font.SourceSansBold
-    progressLabel.TextSize = 7
-
-    -- Drink Progress Bar (background + fill + text inside)
-    local progressBg = Instance.new("Frame", statsFrame)
-    progressBg.Size = UDim2.new(1,-10,0,10)
-    progressBg.Position = UDim2.new(0,5,0,45)
-    progressBg.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    progressBg.BorderSizePixel = 0
-    Instance.new("UICorner", progressBg)
-
-    local progressBar = Instance.new("Frame", progressBg)
-    progressBar.Size = UDim2.new(0,0,1,0)
-    progressBar.BackgroundColor3 = Color3.fromRGB(100,200,255)
-    progressBar.BorderSizePixel = 0
-    Instance.new("UICorner", progressBar)
-
-    local progressPct = Instance.new("TextLabel", progressBg)
-    progressPct.Size = UDim2.new(1,0,1,0)
-    progressPct.BackgroundTransparency = 1
-    progressPct.TextColor3 = Color3.fromRGB(255,255,255)
-    progressPct.Font = Enum.Font.SourceSansBold
-    progressPct.TextSize = 7
-    progressPct.TextXAlignment = Enum.TextXAlignment.Center
-    progressPct.TextYAlignment = Enum.TextYAlignment.Center
-
-    -- Prestige Progress label
-    local prestigeProgLabel = Instance.new("TextLabel", statsFrame)
-    prestigeProgLabel.Size = UDim2.new(1,0,0,10)
-    prestigeProgLabel.Position = UDim2.new(0,0,0,65)
-    prestigeProgLabel.BackgroundTransparency = 1
-    prestigeProgLabel.TextColor3 = Color3.fromRGB(255,200,0)
-    prestigeProgLabel.Font = Enum.Font.SourceSansBold
-    prestigeProgLabel.TextSize = 7
-    prestigeProgLabel.TextXAlignment = Enum.TextXAlignment.Center
-    prestigeProgLabel.TextYAlignment = Enum.TextYAlignment.Center
-
-    -- Prestige Progress Bar (background + fill + text inside)
-    local prestigeBg = Instance.new("Frame", statsFrame)
-    prestigeBg.Size = UDim2.new(1,-10,0,10)
-    prestigeBg.Position = UDim2.new(0,5,0,75)
-    prestigeBg.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    prestigeBg.BorderSizePixel = 0
-    Instance.new("UICorner", prestigeBg)
-
-    local prestigeBar = Instance.new("Frame", prestigeBg)
-    prestigeBar.Size = UDim2.new(0,0,1,0)
-    prestigeBar.BackgroundColor3 = Color3.fromRGB(200,150,0)
-    prestigeBar.BorderSizePixel = 0
-    Instance.new("UICorner", prestigeBar)
-
-    local prestigePct = Instance.new("TextLabel", prestigeBg)
-    prestigePct.Size = UDim2.new(1,0,1,0)
-    prestigePct.BackgroundTransparency = 1
-    prestigePct.TextColor3 = Color3.fromRGB(255,255,255)
-    prestigePct.Font = Enum.Font.SourceSansBold
-    prestigePct.TextSize = 7
-    prestigePct.TextXAlignment = Enum.TextXAlignment.Center
-    prestigePct.TextYAlignment = Enum.TextYAlignment.Center
-
-    -- Helpers: formatting, current/next lookup
-    local lastPoints = burpPoints.Value
-
-    local function trim_trailing_zeros(s)
-        -- remove trailing zeros after decimal and trailing dot
-        s = s:gsub("(%..-)0+$","%1")          -- remove trailing zeros
-        s = s:gsub("%.$","")                  -- remove trailing dot
-        return s
-    end
-
-    local function formatNumber(n)
-        if n >= 1e9 then
-            local num = string.format("%.2f", n/1e9)
-            return trim_trailing_zeros(num) .. "B"
-        elseif n >= 1e6 then
-            local num = string.format("%.2f", n/1e6)
-            return trim_trailing_zeros(num) .. "M"
-        elseif n >= 1e3 then
-            local num = string.format("%.1f", n/1e3)
-            return trim_trailing_zeros(num) .. "k"
-        else
-            return tostring(n)
-        end
-    end
-
-    local function percentText(p)
-        return tostring(math.floor(p * 100 + 0.5)) .. "%"
-    end
-
-    local function getCurrentAndNext(points)
-        local current, nextDrink
-        for i, d in ipairs(drinks) do
-            if points >= d.requirement then
-                current = d
-                nextDrink = drinks[i+1]
-            end
-        end
-        return current, nextDrink
-    end
-
-    -- Update UI every change
-    local function updateUI()
-        local points = burpPoints.Value
-        local gained = points - lastPoints
-        lastPoints = points
-
-        -- RAW (no compacting) for these two labels
-        prestigeLabel.Text = "Prestige: " .. tostring(prestigeStat.Value)
-        gainLabel.Text = "Gain: " .. tostring(gained)
-
-        -- Drink progress
-        local current, nextDrink = getCurrentAndNext(points)
-        if current and nextDrink then
-            local total = nextDrink.requirement - current.requirement
-            local pct = math.clamp((points - current.requirement) / math.max(total,1), 0, 1)
-            progressBar.Size = UDim2.new(pct, 0, 1, 0)
-            progressLabel.Text = current.name .. " → " .. nextDrink.name
-            progressPct.Text = formatNumber(points) .. "/" .. formatNumber(nextDrink.requirement) .. " (" .. percentText(pct) .. ")"
-        elseif current then
-            progressBar.Size = UDim2.new(1,0,1,0)
-            progressLabel.Text = current.name .. " MAXED!"
-            progressPct.Text = formatNumber(points) .. " / MAX (" .. "100%)"
-        else
-            progressBar.Size = UDim2.new(0,0,1,0)
-            progressLabel.Text = "No Drink"
-            progressPct.Text = "0/??? (0%)"
-        end
-
-        -- Prestige progress (compact numbers inside bar)
-        local prestige = prestigeStat.Value
-        local required = 45000 + (prestige * 4500)
-        local pctP = math.clamp(points / math.max(required,1), 0, 1)
-        prestigeBar.Size = UDim2.new(pctP, 0, 1, 0)
-        prestigeProgLabel.Text = "Prestige Progress"
-        prestigePct.Text = formatNumber(points) .. "/" .. formatNumber(required) .. " (" .. percentText(pctP) .. ")"
-    end
-
-    burpPoints.Changed:Connect(updateUI)
-    prestigeStat.Changed:Connect(updateUI)
-    updateUI()
-end
-
---=============================
--- AUTO FUNCTIONS
---=============================
-
--- Auto Equip (retry every 1s, works after death)
+--// Auto Equip
 task.spawn(function()
     while task.wait(1) do
-        if settings.autoEquip then
-            local points = burpPoints.Value
-            local char = LocalPlayer.Character
-            local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        local char = LocalPlayer.Character
+        if not char then continue end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then continue end
 
-            if humanoid then
-                -- Find best drink you qualify for
-                local chosen
-                for _, d in ipairs(drinks) do
-                    if points >= d.requirement then
-                        chosen = d.name
-                    end
-                end
+        local points = burpPoints.Value
+        local drinkName
+        if points >= 2000000 then drinkName = "Garlic Juice"
+        elseif points >= 1000000 then drinkName = "Thunder Fizz"
+        elseif points >= 500000 then drinkName = "Omega Burp Juice"
+        elseif points >= 230000 then drinkName = "Atomic Drink"
+        elseif points >= 150000 then drinkName = "Ninth Drink"
+        elseif points >= 60000 then drinkName = "Eighth Drink"
+        elseif points >= 25000 then drinkName = "Seventh Drink"
+        elseif points >= 10000 then drinkName = "Sixth Drink"
+        elseif points >= 3500 then drinkName = "Fifth Drink"
+        elseif points >= 1600 then drinkName = "Fourth Drink"
+        elseif points >= 600 then drinkName = "Third Drink"
+        elseif points >= 150 then drinkName = "Second Drink"
+        else drinkName = "Starter Drink" end
 
-                if chosen then
-                    -- Look for the drink in Backpack
-                    local tool = LocalPlayer.Backpack:FindFirstChild(chosen)
-                    if tool then
-                        humanoid:EquipTool(tool)
-                    end
-                end
-            end
+        local tool = LocalPlayer.Backpack:FindFirstChild(drinkName)
+        if tool then
+            humanoid:EquipTool(tool)
         end
     end
 end)
 
--- Auto Drink
+--// Auto Drink
 task.spawn(function()
     while task.wait(2.34) do
-        if settings.autoDrink then
-            game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Starter Drink")
+        game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Starter Drink")
 		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Second Drink")
 		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Third Drink")
 		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Fourth Drink")
@@ -521,218 +238,80 @@ task.spawn(function()
 		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Omega Burp Juice")
 		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Thunder Fizz")
 		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Garlic Juice")
-        end
     end
 end)
 
--- Auto Prestige
+--// Auto Prestige
 task.spawn(function()
-    while task.wait(5) do
-        if settings.autoPrestige then
-            ReplicatedStorage.RemoteEvents.PrestigeEvent:FireServer()
-        end
+    while task.wait(10) do
+        ReplicatedStorage.RemoteEvents.PrestigeEvent:FireServer()
     end
 end)
 
--- Auto Gems
+--// Auto Gem Collect
 task.spawn(function()
-    while task.wait(0.3) do
-        if settings.autoGems then
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if root then
-                local diamondsFolder = workspace:FindFirstChild("Diamonds")
-                if diamondsFolder then
-                    for _, gem in ipairs(diamondsFolder:GetChildren()) do
-                        if gem:IsA("BasePart") then
-                            -- Anchor gem locally and move it to player
-                            gem.Anchored = true
-                            gem.CFrame = root.CFrame * CFrame.new(0, 0, -2) -- offset behind player
-                        end
+    local batchSize = 2
+    while task.wait(0.2) do
+        local char, hrp = WaitForCharacter()
+        if hrp then
+            local diamondsFolder = Workspace:FindFirstChild("Diamonds")
+            if diamondsFolder then
+                local gems = {}
+                for _, gem in pairs(diamondsFolder:GetChildren()) do
+                    if gem:IsA("BasePart") then
+                        table.insert(gems, gem)
                     end
                 end
-            end
-        end
-    end
-end)
-
--- Speed Boost Toggle (continuous enforcement)
-local originalSpeed = nil
-
-createToggle(sections.System, "Speed Boost", "speedBoost", function(on)
-    local function applySpeed()
-        local char = LocalPlayer.Character
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if not humanoid then return end
-
-        if on then
-            -- Save original speed only once
-            if originalSpeed == nil then
-                originalSpeed = humanoid.WalkSpeed
-            end
-            humanoid.WalkSpeed = 700
-        else
-            -- Restore original speed
-            if originalSpeed then
-                humanoid.WalkSpeed = originalSpeed
-                originalSpeed = nil
-            end
-        end
-    end
-
-    -- Apply immediately
-    applySpeed()
-
-    -- Continuously enforce speed while toggle is ON
-    if on then
-        -- Spawn a loop that keeps WalkSpeed at 700
-        spawn(function()
-            while settings.speedBoost do
-                local char = LocalPlayer.Character
-                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.WalkSpeed = 700
-                end
-                task.wait(0.1) -- adjust interval if needed
-            end
-        end)
-    end
-end)
-
--- Reapply speed on respawn if toggle is ON
-LocalPlayer.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    if settings.speedBoost then
-        local humanoid = char:WaitForChild("Humanoid",5)
-        if humanoid then
-            if originalSpeed == nil then
-                originalSpeed = humanoid.WalkSpeed
-            end
-            humanoid.WalkSpeed = 700
-        end
-    end
-end)
-
--- Night Mode Toggle
-createToggle(sections.System, "Night Mode", "nightMode", function(on)
-    local Lighting = game:GetService("Lighting")
-
-    if on then
-        -- Set the game time to night
-        Lighting.ClockTime = 20  -- 8 PM
-    else
-        -- Reset to default day time (you can adjust as needed)
-        Lighting.ClockTime = 14  -- 2 PM default
-    end
-end)
-
--- Walk on Water Toggle
-createToggle(sections.System, "Walk On Water", "walkOnWater", function(on)
-    -- Function to apply Walk on Water
-    local function applyWalkOnWater()
-        -- Enable CanCollide for parts named "Part"
-        for _, obj in pairs(game.Workspace:GetChildren()) do
-            if obj:IsA("BasePart") and obj.Name == "Part" then
-                obj.CanCollide = true
-            end
-        end
-
-        -- Disable CanCollide for BorderWalls
-        local borderWalls = game.Workspace:FindFirstChild("BorderWalls")
-        if borderWalls then
-            for _, obj in pairs(borderWalls:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    obj.CanCollide = false
-                end
-            end
-        else
-            warn("BorderWalls model not found in Workspace!")
-        end
-    end
-
-    -- Apply immediately if toggled on
-    if on then
-        applyWalkOnWater()
-    else
-        -- If toggled off, reset CanCollide (optional: restores default behavior)
-        for _, obj in pairs(game.Workspace:GetChildren()) do
-            if obj:IsA("BasePart") and obj.Name == "Part" then
-                obj.CanCollide = true
-            end
-        end
-        local borderWalls = game.Workspace:FindFirstChild("BorderWalls")
-        if borderWalls then
-            for _, obj in pairs(borderWalls:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    obj.CanCollide = true
+                for i = 1, math.min(batchSize, #gems) do
+                    local gem = gems[i]
+                    pcall(function()
+                        firetouchinterest(hrp, gem, 0)
+                        firetouchinterest(hrp, gem, 1)
+                    end)
                 end
             end
         end
     end
 end)
 
--- Optional: automatically reapply if parts are added dynamically
-game.Workspace.DescendantAdded:Connect(function(obj)
-    if settings.walkOnWater and obj:IsA("BasePart") then
-        if obj.Name == "Part" then
-            obj.CanCollide = true
-        elseif obj.Parent and obj.Parent.Name == "BorderWalls" then
-            obj.CanCollide = false
-        end
-    end
-end)
-
--- Infinite Jump Toggle
-createToggle(sections.System,"Infinite Jump","infiniteJump",function(on)
-    -- Nothing needs to happen here on toggle click, the input connection will check the setting
-end)
-
--- Connect JumpRequest to enable infinite jump
-game:GetService("UserInputService").JumpRequest:Connect(function()
-    if settings.infiniteJump then
-        local char = game.Players.LocalPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:ChangeState("Jumping")
-            end
-        end
-    end
-end)
-
--- Safe Spawn
-LocalPlayer.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    if settings.safeSpawn then
-        local hrp = char:WaitForChild("HumanoidRootPart",5)
-        if hrp then
-            hrp.CFrame = CFrame.new(safeSpawnCoords + Vector3.new(0,3,0))
-        end
-    end
-end)
-
--- Optimized Anti AFK & Anti Kick
-do
-    local vu = game:GetService('VirtualUser')
-    LocalPlayer.Idled:Connect(function()
-        if settings.antiAFK then
-            vu:CaptureController()
-            vu:ClickButton2(Vector2.new())
+--// Auto Rejoin
+local function retryRejoin()
+    task.spawn(function()
+        while true do
+            task.wait(10)
+            pcall(function()
+                TeleportService:Teleport(game.PlaceId, LocalPlayer)
+            end)
         end
     end)
+end
 
-   local mt = getrawmetatable(game)
-	local old = mt.__namecall
-	local protect = newcclosure or protect_function
+GuiService.ErrorMessageChanged:Connect(function(errorMessage)
+    if errorMessage and errorMessage ~= "" then
+        retryRejoin()
+    end
+end)
 
-	setreadonly(mt, false)
-	mt.__namecall = protect(function(self, ...)
-		local method = getnamecallmethod()
-		if method == "Kick" then
-			wait(9e9)
-			return
-		end
-		return old(self, ...)
-	end)
-	hookfunction(game.Players.LocalPlayer.Kick,protect(function() wait(9e9) end))
+--// Anti-AFK
+do
+    local vu = game:service("VirtualUser")
+    LocalPlayer.Idled:Connect(function()
+        vu:CaptureController()
+        vu:ClickButton2(Vector2.new())
+    end)
+end
+
+--// Anti-Kick
+do
+    local mt = getrawmetatable(game)
+    local old = mt.__namecall
+    local protect = newcclosure or protect_function
+    setreadonly(mt, false)
+    mt.__namecall = protect(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" then wait(9e9) return end
+        return old(self, ...)
+    end)
+    hookfunction(LocalPlayer.Kick, protect(function() wait(9e9) end))
+    setreadonly(mt, true)
 end
