@@ -259,6 +259,23 @@ function spawnStatsMonitor()
     statsFrame.Draggable = true
     Instance.new("UICorner", statsFrame)
 
+     -- Rainbow Outline
+    local outline = Instance.new("UIStroke", statsFrame)
+    outline.Thickness = 2
+    outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    -- Animate rainbow colors
+    task.spawn(function()
+        while statsFrame and statsFrame.Parent do
+            for i = 0, 1, 0.01 do
+                -- Convert hue (0-1) to RGB
+                local color = Color3.fromHSV(i, 1, 1)
+                outline.Color = color
+                task.wait(0.05) -- Speed of color change (lower = faster)
+            end
+        end
+    end)
+
     -- Title
     local title = Instance.new("TextLabel", statsFrame)
     title.Size = UDim2.new(1,0,0,10)
