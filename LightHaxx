@@ -51,8 +51,6 @@ local burpPoints = leaderstats:WaitForChild("Burp points")
 local prestigeStat = leaderstats:WaitForChild("Prestige")
 
 --// Settings
---// Persistent settings file
-local settingsFile = "burp_settings.json"
 local settings = {
     autoDrink = false,
     autoEquip = false,
@@ -67,29 +65,6 @@ local settings = {
     antiKick = false,
     showStatsUI = false
 }
-
--- Load previous settings if saved
-if isfile and readfile and isfile(settingsFile) then
-    local success, data = pcall(function()
-        return HttpService:JSONDecode(readfile(settingsFile))
-    end)
-    if success and type(data) == "table" then
-        for k,v in pairs(data) do
-            if settings[k] ~= nil then
-                settings[k] = v
-            end
-        end
-        print("[Settings] Loaded previous configuration.")
-    end
-end
-
--- Save function (runs automatically when toggled)
-local function saveSettings()
-    if writefile then
-        local encoded = HttpService:JSONEncode(settings)
-        writefile(settingsFile, encoded)
-    end
-end
 
 --// Drinks progression (fix thresholds)
 local drinks = {
@@ -262,29 +237,6 @@ createToggle(sections.Stats,"Show Stats Monitor","showStatsUI",function(on)
     else
         local existing = screenGui:FindFirstChild("StatsMonitor")
         if existing then existing:Destroy() end
-    end
-end)
-
--- After all toggles are created
-task.defer(function()
-    -- Wait until the UI fully loads
-    task.wait(0.5)
-    for settingKey, value in pairs(settings) do
-        if value then
-            -- Find the toggle button text that matches this setting
-            for _, section in pairs(sections) do
-                for _, obj in ipairs(section:GetChildren()) do
-                    if obj:IsA("TextButton") and string.find(obj.Text, settingKey:gsub("^%l", string.upper):gsub("([A-Z])", " %1"):gsub("^%s+", "")) then
-                        obj.Text = obj.Text:gsub("❎", "✅")
-                        obj.BackgroundColor3 = Color3.fromRGB(180, 0, 255)
-                    end
-                end
-            end
-            -- Trigger callbacks if any (like showing stats UI)
-            if settingKey == "showStatsUI" and value then
-                spawnStatsMonitor()
-            end
-        end
     end
 end)
 
