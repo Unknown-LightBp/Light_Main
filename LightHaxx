@@ -274,7 +274,7 @@ function spawnStatsMonitor()
     statsFrame.Draggable = true
     Instance.new("UICorner", statsFrame)
 
-     -- Rainbow Outline
+    -- Rainbow Outline
     local outline = Instance.new("UIStroke", statsFrame)
     outline.Thickness = 2
     outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
