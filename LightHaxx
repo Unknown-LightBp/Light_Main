@@ -65,6 +65,37 @@ local settings = {
     showStatsUI = false
 }
 
+--// Persistent Save System (local file)
+local saveFile = "HaxxSettings_" .. LocalPlayer.UserId .. ".json"
+
+-- Load saved settings
+if isfile and isfile(saveFile) then
+    local success, data = pcall(function()
+        return HttpService:JSONDecode(readfile(saveFile))
+    end)
+    if success and type(data) == "table" then
+        for key, value in pairs(data) do
+            if settings[key] ~= nil then
+                settings[key] = value
+            end
+        end
+    end
+end
+
+-- Function to save current settings
+local function saveSettings()
+    if writefile then
+        local encoded = HttpService:JSONEncode(settings)
+        writefile(saveFile, encoded)
+    end
+end
+
+-- Auto-save every time a setting changes
+local function updateSetting(key, value)
+    settings[key] = value
+    saveSettings()
+end
+
 --// Drinks progression (fix thresholds)
 local drinks = {
     {name="Starter Drink", requirement=0},
@@ -386,19 +417,20 @@ end
 local function createToggle(parent,text,settingKey,callback)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(1,0,0,30)
-    btn.BackgroundColor3 = Color3.fromRGB(120,0,200)
+    btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(180,0,255) or Color3.fromRGB(120,0,200)
     btn.BackgroundTransparency = 0.3
     btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 16
-    btn.Text = text.." ❎"
+    btn.Text = text.." "..(settings[settingKey] and "✅" or "❎")
     Instance.new("UICorner", btn)
     
     btn.MouseButton1Click:Connect(function()
-        settings[settingKey] = not settings[settingKey]
-        btn.Text = text.." "..(settings[settingKey] and "✅" or "❎")
-        btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(180,0,255) or Color3.fromRGB(120,0,200)
-        if callback then callback(settings[settingKey]) end
+        local newValue = not settings[settingKey]
+        btn.Text = text.." "..(newValue and "✅" or "❎")
+        btn.BackgroundColor3 = newValue and Color3.fromRGB(180,0,255) or Color3.fromRGB(120,0,200)
+        updateSetting(settingKey, newValue)
+        if callback then callback(newValue) end
     end)
 end
 
@@ -417,8 +449,7 @@ createToggle(sections.Main,"Auto Gems","autoGems")
 
 addLayout(sections.System)
 createToggle(sections.System,"Safe Spawn","safeSpawn")
-createToggle(sections.System,"Speed Boost","speedBoost", function(on)
-    -- Apply speed immediately and enforce while on
+createToggle(sections.System, "Speed Boost", "speedBoost", function(on)
     local originalSpeed = nil
 
     local function applySpeedToCharacter(charHum)
@@ -436,12 +467,12 @@ createToggle(sections.System,"Speed Boost","speedBoost", function(on)
         end
     end
 
-    -- Try apply to current character
+    -- Apply to current character if exists
     local char = LocalPlayer.Character
     local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     applySpeedToCharacter(humanoid)
 
-    -- Continuously enforce while toggled on
+    -- Continuous enforcement while ON
     if on then
         task.spawn(function()
             while settings.speedBoost do
@@ -455,6 +486,43 @@ createToggle(sections.System,"Speed Boost","speedBoost", function(on)
         end)
     end
 end)
+
+-- ✅ Auto-apply on spawn or script load
+local function enforceSpeedBoostOnSpawn(char)
+    task.spawn(function()
+        local hum = char:WaitForChild("Humanoid", 5)
+        if hum then
+            -- capture normal speed once per session
+            if not _G._originalSpeed then
+                _G._originalSpeed = hum.WalkSpeed
+            end
+            if settings.speedBoost then
+                task.wait(0.5)
+                hum.WalkSpeed = 700
+                -- keep reapplying while active
+                task.spawn(function()
+                    while settings.speedBoost do
+                        local c = LocalPlayer.Character
+                        local h = c and c:FindFirstChildOfClass("Humanoid")
+                        if h then
+                            h.WalkSpeed = 700
+                        end
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end
+    end)
+end
+
+-- Hook for new characters
+LocalPlayer.CharacterAdded:Connect(enforceSpeedBoostOnSpawn)
+
+-- Run once for current character (if already loaded)
+if LocalPlayer.Character then
+    enforceSpeedBoostOnSpawn(LocalPlayer.Character)
+end
+
 createToggle(sections.System,"Walk On Water","walkOnWater", function(on)
     local function applyWalkOnWater(enable)
         for _, obj in pairs(workspace:GetChildren()) do
@@ -531,10 +599,6 @@ minimizeBtn.MouseButton1Click:Connect(function()
         contentContainer.Visible = true
     end
 end)
-
---=============================
--- STATS MONITOR UI FUNCTIONS (already defined above; nothing else needed)
---=============================
 
 --=============================
 -- AUTO FUNCTIONS
@@ -679,3 +743,57 @@ do
         end)
     end
 end
+
+--=============================
+-- AUTO RESTORE ACTIVE FEATURES
+--=============================
+task.defer(function()
+    task.wait(1) -- give UI a moment to fully initialize before applying
+
+    -- Helper: safely call the same logic as if toggle was clicked
+    local function applySetting(key, callback)
+        local value = settings[key]
+        if value and callback then
+            callback(true)
+        end
+    end
+
+    -- Apply each feature that needs to initialize itself
+    if settings.safeSpawn then
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart",5)
+        if hrp then
+            hrp.CFrame = CFrame.new(safeSpawnCoords + Vector3.new(0,3,0))
+        end
+    end
+
+    if settings.speedBoost then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 700 end
+    end
+
+    if settings.nightMode then
+        game:GetService("Lighting").ClockTime = 20
+    end
+
+    if settings.walkOnWater then
+        for _, obj in pairs(workspace:GetChildren()) do
+            if obj:IsA("BasePart") and obj.Name == "Part" then
+                obj.CanCollide = true
+            end
+        end
+        local borderWalls = workspace:FindFirstChild("BorderWalls")
+        if borderWalls then
+            for _, obj in pairs(borderWalls:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    obj.CanCollide = false
+                end
+            end
+        end
+    end
+
+    if settings.showStatsUI then
+        spawnStatsMonitor()
+    end
+end)
