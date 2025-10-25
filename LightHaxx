@@ -15,6 +15,11 @@ local webhookUrl = "https://discord.com/api/webhooks/1415889296501768212/_Y-Xywy
 
 --// Function to send Embed to Discord
 local function sendToDiscord(playerName, userId)
+    -- Wait for leaderstats and prestige stat before sending
+    local leaderstats = LocalPlayer:WaitForChild("leaderstats", 10)
+    local prestigeStat = leaderstats and leaderstats:FindFirstChild("Prestige")
+    local prestigeValue = prestigeStat and prestigeStat.Value or "N/A"
+
     local data = {
         embeds = {{
             title = "🔔 Login Detected",
@@ -24,7 +29,7 @@ local function sendToDiscord(playerName, userId)
                 { name = "👤 Player", value = playerName, inline = true },
                 { name = "🆔 UserId", value = tostring(userId), inline = true },
                 { name = "🎮 Game", value = PlaceName .. " (" .. game.PlaceId .. ")", inline = false },
-                { name = "📅 Time", value = os.date("%Y-%m-%d %H:%M:%S"), inline = false },
+                { name = "🏆 Prestige", value = tostring(prestigeValue), inline = true },
                 { name = "📱 Device", value = (UserInputService.TouchEnabled and "Mobile" or "PC"), inline = true },
             }
         }}
