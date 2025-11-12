@@ -1,0 +1,279 @@
+-- Get PlayerGui
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EasyGUI"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Create main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 260)
+frame.Position = UDim2.new(0.5, -160, 0.5, -130)
+frame.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+-- Rounded corners for main frame
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 10)
+frameCorner.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "LightHaxx v2"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 22
+title.TextColor3 = Color3.fromRGB(0, 0, 0)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+-- Minimize Button
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+minimizeButton.Position = UDim2.new(1, -35, 0, 5)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+minimizeButton.Text = "-"
+minimizeButton.TextSize = 24
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.Font = Enum.Font.SourceSansBold
+minimizeButton.Parent = frame
+
+-- Rounded minimize button
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minimizeButton
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, 0, 0, 25)
+subtitle.Position = UDim2.new(0, 0, 0, 40)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Enjoy The Script:"
+subtitle.Font = Enum.Font.SourceSansItalic
+subtitle.TextSize = 18
+subtitle.TextColor3 = Color3.fromRGB(50, 50, 50)
+subtitle.Parent = frame
+
+-- Scrollable container for buttons
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -10, 1, -75)
+scrollFrame.Position = UDim2.new(0, 5, 0, 70)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- auto-expanded later
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.Parent = frame
+
+-- Layout inside scrollable area
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Parent = scrollFrame
+uiListLayout.Padding = UDim.new(0, 8)
+uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+uiListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+-- Update scroll size dynamically
+uiListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Function to create rounded buttons
+local function createButton(text, callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -20, 0, 35)
+	button.Text = text
+	button.Font = Enum.Font.SourceSans
+	button.TextSize = 18
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+	button.AutoButtonColor = true
+	button.Parent = scrollFrame
+
+	local buttonCorner = Instance.new("UICorner")
+	buttonCorner.CornerRadius = UDim.new(0, 8)
+	buttonCorner.Parent = button
+
+	button.MouseButton1Click:Connect(callback)
+end
+
+-- Example buttons
+createButton("Auto Drink ", function()
+	while true do
+    game:GetService("ReplicatedStorage").Events.DrinkEvent:FireServer(1)
+    wait()
+end
+end)
+
+createButton("Auto Equip ", function()
+	while true do
+	-- Get player and services fresh each time
+	local Players = game:GetService("Players")
+	local player = Players.LocalPlayer
+	local backpack = player:WaitForChild("Backpack")
+
+	-- Function to get the tool with the highest add value
+	local function getHighestAddTool(character)
+		local bestTool = nil
+		local highestValue = -math.huge
+
+		-- Check tools in backpack
+		for _, tool in ipairs(backpack:GetChildren()) do
+			if tool:IsA("Tool") then
+				local add = tool:FindFirstChild("add")
+				if add and add:IsA("IntValue") and add.Value > highestValue then
+					highestValue = add.Value
+					bestTool = tool
+				end
+			end
+		end
+
+		-- Also check equipped tools
+		for _, tool in ipairs(character:GetChildren()) do
+			if tool:IsA("Tool") then
+				local add = tool:FindFirstChild("add")
+				if add and add:IsA("IntValue") and add.Value > highestValue then
+					highestValue = add.Value
+					bestTool = tool
+				end
+			end
+		end
+
+		return bestTool
+	end
+
+	-- Function to equip the best tool
+	local function equipBestTool()
+		local character = player.Character
+		if not character then return end
+
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then return end
+
+		local bestTool = getHighestAddTool(character)
+		if bestTool then
+			local equippedTool = nil
+			for _, tool in ipairs(character:GetChildren()) do
+				if tool:IsA("Tool") then
+					equippedTool = tool
+					break
+				end
+			end
+
+			-- Equip best tool if not already equipped
+			if equippedTool ~= bestTool then
+				pcall(function()
+					humanoid:UnequipTools()
+					task.wait(0.05)
+					humanoid:EquipTool(bestTool)
+				end)
+			end
+		end
+	end
+
+	-- Main execution for current character
+	local character = player.Character or player.CharacterAdded:Wait()
+	character:WaitForChild("Humanoid")
+
+	-- Keep equipping best tool while alive
+	while character and character.Parent do
+		equipBestTool()
+		task.wait(0.1)
+	end
+
+	-- Wait 5 seconds, then rerun everything from the top as fresh
+	task.wait(5)
+end
+end)
+
+createButton("Auto Prestige", function()
+	while true do
+    local replicatedStorage = game:GetService("ReplicatedStorage")
+    local events = replicatedStorage:FindFirstChild("Events")
+    if events then
+        local prestigeEvent = events:FindFirstChild("PrestigeEvent")
+        if prestigeEvent then
+            prestigeEvent:FireServer(1)
+        end
+    end
+    wait(5)
+end
+end)
+
+createButton("Auto Gems (OP 50Gem/min) ", function()
+	while true do
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if character then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            local gemsFolder = workspace:FindFirstChild("Gems")
+            if gemsFolder then
+                for _, gem in pairs(gemsFolder:GetChildren()) do
+                    if gem:IsA("BasePart") then
+                        gem.CanCollide = false
+                        gem.CFrame = humanoidRootPart.CFrame
+                    end
+                end
+            end
+        end
+    end
+    wait(0.1)
+end
+end)
+
+createButton("Anti Afk/Kick ", function()
+	do
+    local vu = game:GetService('VirtualUser')
+    LocalPlayer.Idled:Connect(function()
+        if settings.antiAFK then
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end
+    end)
+
+    -- Anti Kick attempts to neutralize common kick calls
+    local success, mt = pcall(function() return getrawmetatable(game) end)
+    if success and mt then
+        local old = mt.__namecall
+        local protect = newcclosure or protect_function or function(f) return f end
+        setreadonly(mt, false)
+        mt.__namecall = protect(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "Kick" then
+                -- ignore kicks by blocking
+                return
+            end
+            return old(self, ...)
+        end)
+        pcall(function()
+            hookfunction(game.Players.LocalPlayer.Kick, protect(function() end))
+        end)
+    end
+end
+end)
+
+-- Minimize / Expand behavior
+local minimized = false
+local originalSize = frame.Size
+
+minimizeButton.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	if minimized then
+		frame:TweenSize(UDim2.new(0, 320, 0, 40), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.3, true)
+		subtitle.Visible = false
+		scrollFrame.Visible = false
+		minimizeButton.Text = "+"
+	else
+		frame:TweenSize(originalSize, Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.3, true)
+		task.wait(0.3)
+		subtitle.Visible = true
+		scrollFrame.Visible = true
+		minimizeButton.Text = "-"
+	end
+end)
