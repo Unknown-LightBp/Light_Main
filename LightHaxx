@@ -640,7 +640,7 @@ end)
 
 -- Auto Drink
 task.spawn(function()
-    while task.wait(2.34) do
+    while wait() do
         if settings.autoDrink then
             game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Starter Drink")
 		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Second Drink")
