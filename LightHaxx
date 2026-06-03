@@ -15,11 +15,6 @@ local webhookUrl = "https://discord.com/api/webhooks/1415889296501768212/_Y-Xywy
 
 --// Function to send Embed to Discord
 local function sendToDiscord(playerName, userId)
-    -- Wait for leaderstats and prestige stat before sending
-    local leaderstats = LocalPlayer:WaitForChild("leaderstats", 10)
-    local prestigeStat = leaderstats and leaderstats:FindFirstChild("Prestige")
-    local prestigeValue = prestigeStat and prestigeStat.Value or "N/A"
-
     local data = {
         embeds = {{
             title = "🔔 Login Detected",
@@ -29,7 +24,7 @@ local function sendToDiscord(playerName, userId)
                 { name = "👤 Player", value = playerName, inline = true },
                 { name = "🆔 UserId", value = tostring(userId), inline = true },
                 { name = "🎮 Game", value = PlaceName .. " (" .. game.PlaceId .. ")", inline = false },
-                { name = "🏆 Prestige", value = tostring(prestigeValue), inline = true },
+                { name = "📅 Time", value = os.date("%Y-%m-%d %H:%M:%S"), inline = false },
                 { name = "📱 Device", value = (UserInputService.TouchEnabled and "Mobile" or "PC"), inline = true },
             }
         }}
@@ -67,8 +62,14 @@ local settings = {
     infiniteJump = false,
     antiAFK = false,
     antiKick = false,
-    showStatsUI = false
+    showStatsUI = false,
+    uiColor = "Violet"
 }
+
+-- Global Trackers for UI Elements
+local allToggleButtons = {} 
+local allCustomButtons = {} -- Tracks standalone custom buttons (like Load IY, Teleport, etc)
+local currentThemeColor = Color3.fromRGB(120,0,200) -- Default Violet
 
 --// Persistent Save System (local file)
 local saveFile = "HaxxSettings_" .. LocalPlayer.UserId .. ".json"
@@ -101,7 +102,7 @@ local function updateSetting(key, value)
     saveSettings()
 end
 
---// Drinks progression (fix thresholds)
+--// Drinks progression
 local drinks = {
     {name="Starter Drink", requirement=0},
     {name="Second Drink", requirement=150},
@@ -118,11 +119,126 @@ local drinks = {
     {name="Garlic Juice", requirement=2000000},
 }
 
---// Safe Spawn
+--========================================================
+-- MASSIVE PREMIUM CHILL HUB AREA (Ultra High Sky Structure)
+--========================================================
+local customHubArea = workspace:FindFirstChild("LT_Custom_Chill_Hub")
+local hubSpawnLocation = Vector3.new(3500, 2500, 3500) -- Moved even higher and further out
+
+if not customHubArea then
+    customHubArea = Instance.new("Folder")
+    customHubArea.Name = "LT_Custom_Chill_Hub"
+    customHubArea.Parent = workspace
+
+    -- 1. Massive Main Floor Base (Expanded from 300 to 650 size)
+    local mainFloor = Instance.new("Part")
+    mainFloor.Name = "MainFloor"
+    mainFloor.Size = Vector3.new(650, 4, 650)
+    mainFloor.Position = hubSpawnLocation - Vector3.new(0, 2, 0)
+    mainFloor.Material = Enum.Material.Glass
+    mainFloor.Color = Color3.fromRGB(12, 12, 18)
+    mainFloor.Anchored = true
+    mainFloor.Parent = customHubArea
+
+    -- 2. Neon Accent Layout & Borders (Resized to fit massive map dimensions)
+    local function createAccentLine(size, position, color)
+        local line = Instance.new("Part")
+        line.Size = size
+        line.Position = position
+        line.Material = Enum.Material.Neon
+        line.Color = color
+        line.Anchored = true
+        line.CanCollide = true
+        line.Parent = customHubArea
+        return line
+    end
+
+    createAccentLine(Vector3.new(652, 5, 4), hubSpawnLocation + Vector3.new(0, -0.5, 325), Color3.fromRGB(0, 255, 255))
+    createAccentLine(Vector3.new(652, 5, 4), hubSpawnLocation + Vector3.new(0, -0.5, -325), Color3.fromRGB(0, 255, 255))
+    createAccentLine(Vector3.new(4, 5, 652), hubSpawnLocation + Vector3.new(325, -0.5, 0), Color3.fromRGB(0, 255, 255))
+    createAccentLine(Vector3.new(4, 5, 652), hubSpawnLocation + Vector3.new(-325, -0.5, 0), Color3.fromRGB(0, 255, 255))
+
+    -- 3. Glass Sky Protective Walls (Resized to fit massive boundaries)
+    local function createGlassWall(size, position)
+        local wall = Instance.new("Part")
+        wall.Size = size
+        wall.Position = position
+        wall.Material = Enum.Material.Glass
+        wall.Color = Color3.fromRGB(200, 240, 255)
+        wall.Transparency = 0.88
+        wall.Anchored = true
+        wall.CanCollide = true
+        wall.Parent = customHubArea
+    end
+    createGlassWall(Vector3.new(650, 80, 2), hubSpawnLocation + Vector3.new(0, 38, 325))
+    createGlassWall(Vector3.new(650, 80, 2), hubSpawnLocation + Vector3.new(0, 38, -325))
+    createGlassWall(Vector3.new(2, 80, 650), hubSpawnLocation + Vector3.new(325, 38, 0))
+    createGlassWall(Vector3.new(2, 80, 650), hubSpawnLocation + Vector3.new(-325, 38, 0))
+
+    -- 4. Premium Giant Central Platform
+    local centerStage = Instance.new("Part")
+    centerStage.Size = Vector3.new(120, 12, 120)
+    centerStage.Position = hubSpawnLocation + Vector3.new(0, 4, 0)
+    centerStage.Material = Enum.Material.SmoothPlastic
+    centerStage.Color = Color3.fromRGB(25, 25, 30)
+    centerStage.Shape = Enum.PartType.Cylinder
+    centerStage.Orientation = Vector3.new(0, 0, 90)
+    centerStage.Anchored = true
+    centerStage.Parent = customHubArea
+
+    -- Giant Central Floating Prism Crystal
+    local crystal = Instance.new("Part")
+    crystal.Size = Vector3.new(16, 28, 16)
+    crystal.Position = hubSpawnLocation + Vector3.new(0, 35, 0)
+    crystal.Material = Enum.Material.Neon
+    crystal.Color = Color3.fromRGB(0, 255, 255)
+    crystal.Anchored = true
+    crystal.CanCollide = false
+    crystal.Parent = customHubArea
+
+    task.spawn(function()
+        local rotation = 0
+        while crystal and crystal.Parent do
+            rotation = rotation + 1.2
+            crystal.CFrame = CFrame.new(hubSpawnLocation + Vector3.new(0, 35 + math.sin(tick() * 1.5) * 3, 0)) * CFrame.Angles(0, math.rad(rotation), math.rad(45))
+            task.wait(0.02)
+        end
+    end)
+
+    -- 5. Expanded Layout of Premium VIP Lounges
+    local colors = {Color3.fromRGB(255, 0, 127), Color3.fromRGB(0, 255, 127), Color3.fromRGB(0, 127, 255), Color3.fromRGB(255, 200, 0)}
+    local positions = {
+        Vector3.new(200, 15, 200),
+        Vector3.new(-200, 15, 200),
+        Vector3.new(200, 15, -200),
+        Vector3.new(-200, 15, -200)
+    }
+
+    for idx, offset in ipairs(positions) do
+        local vipPod = Instance.new("Part")
+        vipPod.Size = Vector3.new(75, 4, 75)
+        vipPod.Position = hubSpawnLocation + offset
+        vipPod.Material = Enum.Material.DiamondPlate
+        vipPod.Color = Color3.fromRGB(35, 35, 40)
+        vipPod.Anchored = true
+        vipPod.Parent = customHubArea
+
+        local ring = Instance.new("Part")
+        ring.Size = Vector3.new(79, 1.5, 79)
+        ring.Position = vipPod.Position - Vector3.new(0, 1.2, 0)
+        ring.Material = Enum.Material.Neon
+        ring.Color = colors[idx]
+        ring.Anchored = true
+        ring.CanCollide = false
+        ring.Parent = customHubArea
+    end
+end
+
+-- Used for global default configurations
 local safeSpawnCoords = Vector3.new(-56.8589592, 47.532795, -25.2509499)
 
 --=============================
--- STATS MONITOR (define before UI toggles use it)
+-- STATS MONITOR
 --=============================
 function spawnStatsMonitor()
     if game.Players.LocalPlayer:FindFirstChild("PlayerGui") == nil then return end
@@ -131,19 +247,17 @@ function spawnStatsMonitor()
 
     local statsFrame = Instance.new("Frame", screenGui)
     statsFrame.Name = "StatsMonitor"
-    statsFrame.Size = UDim2.new(0,130,0,95) -- 50% smaller
+    statsFrame.Size = UDim2.new(0,130,0,95)
     statsFrame.Position = UDim2.new(0,50,0,50)
     statsFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
     statsFrame.Active = true
     statsFrame.Draggable = true
     Instance.new("UICorner", statsFrame)
 
-    -- Rainbow Outline
     local outline = Instance.new("UIStroke", statsFrame)
     outline.Thickness = 2
     outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- Animate rainbow colors
     task.spawn(function()
         while statsFrame and statsFrame.Parent do
             for i = 0, 1, 0.01 do
@@ -154,7 +268,6 @@ function spawnStatsMonitor()
         end
     end)
 
-    -- Title
     local title = Instance.new("TextLabel", statsFrame)
     title.Size = UDim2.new(1,0,0,10)
     title.Position = UDim2.new(0,0,0,0)
@@ -164,7 +277,6 @@ function spawnStatsMonitor()
     title.TextSize = 8
     title.TextColor3 = Color3.fromRGB(0,255,255)
 
-    -- Prestige count (RAW)
     local prestigeLabel = Instance.new("TextLabel", statsFrame)
     prestigeLabel.Size = UDim2.new(1,0,0,10)
     prestigeLabel.Position = UDim2.new(0,0,0,12)
@@ -174,7 +286,6 @@ function spawnStatsMonitor()
     prestigeLabel.TextSize = 7
     prestigeLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Gain per drink (RAW)
     local gainLabel = Instance.new("TextLabel", statsFrame)
     gainLabel.Size = UDim2.new(1,0,0,10)
     gainLabel.Position = UDim2.new(0,0,0,22)
@@ -184,7 +295,6 @@ function spawnStatsMonitor()
     gainLabel.TextSize = 7
     gainLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Drink Progress label (above bar)
     local progressLabel = Instance.new("TextLabel", statsFrame)
     progressLabel.Size = UDim2.new(1,0,0,10)
     progressLabel.Position = UDim2.new(0,0,0,35)
@@ -195,7 +305,6 @@ function spawnStatsMonitor()
     progressLabel.Font = Enum.Font.SourceSansBold
     progressLabel.TextSize = 7
 
-    -- Drink Progress Bar (background + fill + text inside)
     local progressBg = Instance.new("Frame", statsFrame)
     progressBg.Size = UDim2.new(1,-10,0,10)
     progressBg.Position = UDim2.new(0,5,0,45)
@@ -218,7 +327,6 @@ function spawnStatsMonitor()
     progressPct.TextXAlignment = Enum.TextXAlignment.Center
     progressPct.TextYAlignment = Enum.TextYAlignment.Center
 
-    -- Prestige Progress label
     local prestigeProgLabel = Instance.new("TextLabel", statsFrame)
     prestigeProgLabel.Size = UDim2.new(1,0,0,10)
     prestigeProgLabel.Position = UDim2.new(0,0,0,65)
@@ -229,7 +337,6 @@ function spawnStatsMonitor()
     prestigeProgLabel.TextXAlignment = Enum.TextXAlignment.Center
     prestigeProgLabel.TextYAlignment = Enum.TextYAlignment.Center
 
-    -- Prestige Progress Bar (background + fill + text inside)
     local prestigeBg = Instance.new("Frame", statsFrame)
     prestigeBg.Size = UDim2.new(1,-10,0,10)
     prestigeBg.Position = UDim2.new(0,5,0,75)
@@ -252,7 +359,6 @@ function spawnStatsMonitor()
     prestigePct.TextXAlignment = Enum.TextXAlignment.Center
     prestigePct.TextYAlignment = Enum.TextYAlignment.Center
 
-    -- Helpers: formatting, current/next lookup
     local lastPoints = burpPoints.Value
 
     local function trim_trailing_zeros(s)
@@ -291,7 +397,6 @@ function spawnStatsMonitor()
         return current, nextDrink
     end
 
-    -- Update UI every change
     local function updateUI()
         local points = burpPoints.Value
         local gained = points - lastPoints
@@ -331,7 +436,7 @@ function spawnStatsMonitor()
 end
 
 --=============================
--- MAIN UI
+-- MAIN UI (Tabs Fixed Layout)
 --=============================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HaxxUI"
@@ -340,39 +445,35 @@ screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 
 local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0,350,0,250)
-mainFrame.Position = UDim2.new(0.5,-175,0.5,-125)
-mainFrame.BackgroundColor3 = Color3.fromRGB(75,0,130) -- violet
-mainFrame.BackgroundTransparency = 0.6 -- semi-transparent
+mainFrame.Size = UDim2.new(0,380,0,260) -- Slightly larger box boundary
+mainFrame.Position = UDim2.new(0.5,-190,0.5,-130)
+mainFrame.BackgroundColor3 = currentThemeColor
+mainFrame.BackgroundTransparency = 0.6 
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
 Instance.new("UICorner", mainFrame)
 
--- Violet outline
 local outline = Instance.new("UIStroke", mainFrame)
 outline.Thickness = 2
-outline.Color = Color3.fromRGB(148,0,211) -- violet
+outline.Color = currentThemeColor
 outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Minimize button
-local minimized=false
+local minimized = false
 local minimizeBtn = Instance.new("TextButton", mainFrame)
 minimizeBtn.Size = UDim2.new(0,30,0,30)
 minimizeBtn.Position = UDim2.new(1,-35,0,5)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(50,0,100) -- darker violet
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(50,0,100) 
 minimizeBtn.BackgroundTransparency = 0.4
 minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
 minimizeBtn.Text = "-"
 Instance.new("UICorner",minimizeBtn)
 
--- Content container (all UI goes here)
 local contentContainer = Instance.new("Frame", mainFrame)
 contentContainer.Size = UDim2.new(1,0,1,0)
 contentContainer.Position = UDim2.new(0,0,0,0)
 contentContainer.BackgroundTransparency = 1
 
--- Title
 local titleLabel = Instance.new("TextLabel", contentContainer)
 titleLabel.Size = UDim2.new(1,0,0,30)
 titleLabel.BackgroundTransparency = 1
@@ -381,48 +482,65 @@ titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.TextSize = 20
 titleLabel.TextColor3 = Color3.fromRGB(0,255,255)
 
--- Tabs
-local tabs = {"Main","System","Protection","Stats"}
+-- FIXED TABS: Layout optimization using explicit UIListLayout with Padding
+local tabs = {"Main","System","Protection","Stats","Teleport","Colors"}
 local tabButtons, sections = {}, {}
 local activeTab = "Main"
 
 local tabBar = Instance.new("Frame", contentContainer)
-tabBar.Size = UDim2.new(1,0,0,30)
-tabBar.Position = UDim2.new(0,0,0,30)
+tabBar.Size = UDim2.new(1,-10,0,32) -- Full width minus left/right margins
+tabBar.Position = UDim2.new(0,5,0,32)
 tabBar.BackgroundTransparency = 1
+
 local tabLayout = Instance.new("UIListLayout", tabBar)
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Padding = UDim.new(0,3) -- Separation padding prevents overlapping text items
 
 for i, tabName in ipairs(tabs) do
     local btn = Instance.new("TextButton", tabBar)
-    btn.Size = UDim2.new(1/#tabs,0,1,0)
-    btn.BackgroundColor3 = Color3.fromRGB(120,0,200) -- violet buttons
+    -- Calculate precise layout division dynamically factoring structural padding values
+    btn.Size = UDim2.new(1/#tabs, -(((#tabs-1)*3)/#tabs), 1, 0)
+    btn.BackgroundColor3 = currentThemeColor
     btn.BackgroundTransparency = 0.3
     btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.Text = tabName
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 13
     btn.BorderSizePixel = 0
     Instance.new("UICorner", btn)
     tabButtons[tabName] = btn
 end
 
 local contentFrame = Instance.new("Frame", contentContainer)
-contentFrame.Size = UDim2.new(1,-10,1,-70)
-contentFrame.Position = UDim2.new(0,5,0,65)
+contentFrame.Size = UDim2.new(1,-10,1,-75)
+contentFrame.Position = UDim2.new(0,5,0,70)
 contentFrame.BackgroundTransparency = 1
 
 for _, tabName in ipairs(tabs) do
-    local sec = Instance.new("Frame", contentFrame)
+    local sec = Instance.new("ScrollingFrame", contentFrame)
+    sec.CanvasSize = UDim2.new(0,0,0,0)
+    sec.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sec.ScrollBarThickness = 6
     sec.Size = UDim2.new(1,0,1,0)
     sec.BackgroundTransparency = 1
     sec.Visible = (tabName=="Main")
     sections[tabName] = sec
 end
 
--- Toggle helper
+local function getToggleColor(isActive, themeColor)
+    if isActive then
+        local h, s, v = themeColor:ToHSV()
+        return Color3.fromHSV(h, s, math.clamp(v + 0.2, 0, 1))
+    else
+        return themeColor
+    end
+end
+
 local function createToggle(parent,text,settingKey,callback)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(1,0,0,30)
-    btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(180,0,255) or Color3.fromRGB(120,0,200)
+    btn.BackgroundColor3 = getToggleColor(settings[settingKey], currentThemeColor)
     btn.BackgroundTransparency = 0.3
     btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.Font = Enum.Font.SourceSansBold
@@ -430,10 +548,12 @@ local function createToggle(parent,text,settingKey,callback)
     btn.Text = text.." "..(settings[settingKey] and "✅" or "❎")
     Instance.new("UICorner", btn)
     
+    allToggleButtons[settingKey] = btn
+    
     btn.MouseButton1Click:Connect(function()
         local newValue = not settings[settingKey]
         btn.Text = text.." "..(newValue and "✅" or "❎")
-        btn.BackgroundColor3 = newValue and Color3.fromRGB(180,0,255) or Color3.fromRGB(120,0,200)
+        btn.BackgroundColor3 = getToggleColor(newValue, currentThemeColor)
         updateSetting(settingKey, newValue)
         if callback then callback(newValue) end
     end)
@@ -456,13 +576,10 @@ addLayout(sections.System)
 createToggle(sections.System,"Safe Spawn","safeSpawn")
 createToggle(sections.System, "Speed Boost", "speedBoost", function(on)
     local originalSpeed = nil
-
     local function applySpeedToCharacter(charHum)
         if not charHum then return end
         if on then
-            if originalSpeed == nil then
-                originalSpeed = charHum.WalkSpeed
-            end
+            if originalSpeed == nil then originalSpeed = charHum.WalkSpeed end
             charHum.WalkSpeed = 700
         else
             if originalSpeed then
@@ -472,46 +589,35 @@ createToggle(sections.System, "Speed Boost", "speedBoost", function(on)
         end
     end
 
-    -- Apply to current character if exists
     local char = LocalPlayer.Character
     local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     applySpeedToCharacter(humanoid)
 
-    -- Continuous enforcement while ON
     if on then
         task.spawn(function()
             while settings.speedBoost do
                 local c = LocalPlayer.Character
                 local h = c and c:FindFirstChildOfClass("Humanoid")
-                if h then
-                    h.WalkSpeed = 700
-                end
+                if h then h.WalkSpeed = 700 end
                 task.wait(0.1)
             end
         end)
     end
 end)
 
--- ✅ Auto-apply on spawn or script load
 local function enforceSpeedBoostOnSpawn(char)
     task.spawn(function()
         local hum = char:WaitForChild("Humanoid", 5)
         if hum then
-            -- capture normal speed once per session
-            if not _G._originalSpeed then
-                _G._originalSpeed = hum.WalkSpeed
-            end
+            if not _G._originalSpeed then _G._originalSpeed = hum.WalkSpeed end
             if settings.speedBoost then
                 task.wait(0.5)
                 hum.WalkSpeed = 700
-                -- keep reapplying while active
                 task.spawn(function()
                     while settings.speedBoost do
                         local c = LocalPlayer.Character
                         local h = c and c:FindFirstChildOfClass("Humanoid")
-                        if h then
-                            h.WalkSpeed = 700
-                        end
+                        if h then h.WalkSpeed = 700 end
                         task.wait(0.1)
                     end
                 end)
@@ -520,27 +626,18 @@ local function enforceSpeedBoostOnSpawn(char)
     end)
 end
 
--- Hook for new characters
 LocalPlayer.CharacterAdded:Connect(enforceSpeedBoostOnSpawn)
-
--- Run once for current character (if already loaded)
-if LocalPlayer.Character then
-    enforceSpeedBoostOnSpawn(LocalPlayer.Character)
-end
+if LocalPlayer.Character then enforceSpeedBoostOnSpawn(LocalPlayer.Character) end
 
 createToggle(sections.System,"Walk On Water","walkOnWater", function(on)
     local function applyWalkOnWater(enable)
         for _, obj in pairs(workspace:GetChildren()) do
-            if obj:IsA("BasePart") and obj.Name == "Part" then
-                obj.CanCollide = enable -- in original you toggled, keep consistent
-            end
+            if obj:IsA("BasePart") and obj.Name == "Part" then obj.CanCollide = enable end
         end
         local borderWalls = workspace:FindFirstChild("BorderWalls")
         if borderWalls then
             for _, obj in pairs(borderWalls:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    obj.CanCollide = not enable -- border walls are inverted
-                end
+                if obj:IsA("BasePart") then obj.CanCollide = not enable end
             end
         end
     end
@@ -548,42 +645,94 @@ createToggle(sections.System,"Walk On Water","walkOnWater", function(on)
 end)
 createToggle(sections.System,"Night Mode","nightMode", function(on)
     local Lighting = game:GetService("Lighting")
-    if on then
-        Lighting.ClockTime = 20
-    else
-        Lighting.ClockTime = 14
-    end
+    Lighting.ClockTime = on and 20 or 14
 end)
-createToggle(sections.System,"Infinite Jump","infiniteJump") -- input handled below
+createToggle(sections.System,"Infinite Jump","infiniteJump")
 
 addLayout(sections.Protection)
 createToggle(sections.Protection,"Anti AFK","antiAFK")
 createToggle(sections.Protection,"Anti Kick","antiKick")
 
--- Infinite Yield button
 local iyBtn = Instance.new("TextButton", sections.Protection)
 iyBtn.Size = UDim2.new(1,0,0,30)
-iyBtn.BackgroundColor3 = Color3.fromRGB(120,0,200)
+iyBtn.BackgroundColor3 = currentThemeColor
 iyBtn.BackgroundTransparency = 0.3
 iyBtn.TextColor3 = Color3.fromRGB(255,255,255)
 iyBtn.Font = Enum.Font.SourceSansBold
 iyBtn.TextSize = 16
 iyBtn.Text = "Load Infinite Yield"
 Instance.new("UICorner", iyBtn)
+table.insert(allCustomButtons, iyBtn)
+
 iyBtn.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
 end)
 
--- Stats toggle (uses spawnStatsMonitor defined earlier)
 addLayout(sections.Stats)
 createToggle(sections.Stats,"Show Stats Monitor","showStatsUI",function(on)
-    if on then
-        spawnStatsMonitor()
-    else
+    if on then spawnStatsMonitor() else
         local existing = screenGui:FindFirstChild("StatsMonitor")
         if existing then existing:Destroy() end
     end
 end)
+
+addLayout(sections.Teleport)
+local tpBtn = Instance.new("TextButton", sections.Teleport)
+tpBtn.Size = UDim2.new(1,0,0,35)
+tpBtn.BackgroundColor3 = currentThemeColor
+tpBtn.BackgroundTransparency = 0.2
+tpBtn.TextColor3 = Color3.fromRGB(255,255,255)
+tpBtn.Font = Enum.Font.SourceSansBold
+tpBtn.TextSize = 16
+tpBtn.Text = "🌌 Teleport to Premium Hub"
+Instance.new("UICorner", tpBtn)
+table.insert(allCustomButtons, tpBtn)
+
+tpBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.CFrame = CFrame.new(hubSpawnLocation + Vector3.new(0, 200, 0))
+    end
+end)
+
+addLayout(sections.Colors)
+local themeColors = {
+    Violet = Color3.fromRGB(120,0,200),
+    Green = Color3.fromRGB(0,170,0),
+    Red = Color3.fromRGB(170,0,0),
+    Blue = Color3.fromRGB(0,85,255),
+    Orange = Color3.fromRGB(255,140,0),
+    Pink = Color3.fromRGB(255,20,147)
+}
+
+for colorName, colorValue in pairs(themeColors) do
+    local btn = Instance.new("TextButton", sections.Colors)
+    btn.Size = UDim2.new(1,0,0,30)
+    btn.BackgroundColor3 = colorValue
+    btn.BackgroundTransparency = 0.3
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.Text = colorName .. " Theme"
+    Instance.new("UICorner", btn)
+
+    btn.MouseButton1Click:Connect(function()
+        currentThemeColor = colorValue 
+        mainFrame.BackgroundColor3 = colorValue
+        outline.Color = colorValue
+        
+        for _, customBtn in pairs(allCustomButtons) do
+            customBtn.BackgroundColor3 = colorValue
+        end
+        for _, tbtn in pairs(tabButtons) do
+            tbtn.BackgroundColor3 = colorValue
+        end
+        for key, toggleBtn in pairs(allToggleButtons) do
+            toggleBtn.BackgroundColor3 = getToggleColor(settings[key], colorValue)
+        end
+    end)
+end
 
 -- Tab switching
 for tabName,btn in pairs(tabButtons) do
@@ -600,7 +749,7 @@ minimizeBtn.MouseButton1Click:Connect(function()
         TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,60,0,30)}):Play()
         contentContainer.Visible = false
     else
-        TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,350,0,250)}):Play()
+        TweenService:Create(mainFrame,TweenInfo.new(0.3),{Size=UDim2.new(0,380,0,260)}):Play()
         contentContainer.Visible = true
     end
 end)
@@ -608,70 +757,45 @@ end)
 --=============================
 -- AUTO FUNCTIONS
 --=============================
-
--- Auto Equip (retry every 1s, works after death)
 task.spawn(function()
     while task.wait(1) do
         if settings.autoEquip then
             local points = burpPoints.Value
             local char = LocalPlayer.Character
             local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-
             if humanoid then
-                -- Find best drink you qualify for
                 local chosen
                 for _, d in ipairs(drinks) do
-                    if points >= d.requirement then
-                        chosen = d.name
-                    end
+                    if points >= d.requirement then chosen = d.name end
                 end
-
                 if chosen then
-                    -- Look for the drink in Backpack
                     local tool = LocalPlayer.Backpack:FindFirstChild(chosen)
-                    if tool then
-                        humanoid:EquipTool(tool)
-                    end
+                    if tool then humanoid:EquipTool(tool) end
                 end
             end
         end
     end
 end)
 
--- Auto Drink
 task.spawn(function()
-    while wait() do
+    while task.wait(2.34) do
         if settings.autoDrink then
-            game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Starter Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Second Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Third Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Fourth Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Fifth Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Sixth Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Seventh Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Eighth Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Ninth Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Atomic Drink")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Omega Burp Juice")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Thunder Fizz")
-		game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer("Garlic Juice")
+            for _, d in ipairs(drinks) do
+                game.ReplicatedStorage.RemoteEvents.DrinkEvent:FireServer(d.name)
+            end
         end
     end
 end)
 
--- Auto Prestige
 task.spawn(function()
     while task.wait(5) do
         if settings.autoPrestige then
             local remote = ReplicatedStorage:FindFirstChild("RemoteEvents")
-            if remote and remote:FindFirstChild("PrestigeEvent") then
-                remote.PrestigeEvent:FireServer()
-            end
+            if remote and remote:FindFirstChild("PrestigeEvent") then remote.PrestigeEvent:FireServer() end
         end
     end
 end)
 
--- Auto Gems
 task.spawn(function()
     while task.wait(0.3) do
         if settings.autoGems then
@@ -682,10 +806,9 @@ task.spawn(function()
                 if diamondsFolder then
                     for _, gem in ipairs(diamondsFolder:GetChildren()) do
                         if gem:IsA("BasePart") then
-                            -- Anchor gem locally and move it to player
                             pcall(function()
                                 gem.Anchored = true
-                                gem.CFrame = root.CFrame * CFrame.new(0, 0, -2) -- offset behind player
+                                gem.CFrame = root.CFrame * CFrame.new(0, 0, -2)
                             end)
                         end
                     end
@@ -695,31 +818,25 @@ task.spawn(function()
     end
 end)
 
--- Infinite Jump input handling
 game:GetService("UserInputService").JumpRequest:Connect(function()
     if settings.infiniteJump then
         local char = game.Players.LocalPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:ChangeState("Jumping")
-            end
-        end
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid:ChangeState("Jumping") end
     end
 end)
 
--- Safe Spawn
+-- SAFE SPAWN REDIRECTED TO THE PREMIUM CHILL HUB
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(1)
     if settings.safeSpawn then
         local hrp = char:WaitForChild("HumanoidRootPart",5)
-        if hrp then
-            hrp.CFrame = CFrame.new(safeSpawnCoords + Vector3.new(0,3,0))
+        if hrp then 
+            hrp.CFrame = CFrame.new(hubSpawnLocation + Vector3.new(0,10,0)) 
         end
     end
 end)
 
--- Optimized Anti AFK & Anti Kick
 do
     local vu = game:GetService('VirtualUser')
     LocalPlayer.Idled:Connect(function()
@@ -729,76 +846,36 @@ do
         end
     end)
 
-    -- Anti Kick attempts to neutralize common kick calls
     local success, mt = pcall(function() return getrawmetatable(game) end)
     if success and mt then
         local old = mt.__namecall
         local protect = newcclosure or protect_function or function(f) return f end
         setreadonly(mt, false)
         mt.__namecall = protect(function(self, ...)
-            local method = getnamecallmethod()
-            if method == "Kick" then
-                -- ignore kicks by blocking
-                return
-            end
+            if getnamecallmethod() == "Kick" then return end
             return old(self, ...)
         end)
-        pcall(function()
-            hookfunction(game.Players.LocalPlayer.Kick, protect(function() end))
-        end)
+        pcall(function() hookfunction(game.Players.LocalPlayer.Kick, protect(function() end)) end)
     end
 end
 
---=============================
--- AUTO RESTORE ACTIVE FEATURES
---=============================
 task.defer(function()
-    task.wait(1) -- give UI a moment to fully initialize before applying
-
-    -- Helper: safely call the same logic as if toggle was clicked
-    local function applySetting(key, callback)
-        local value = settings[key]
-        if value and callback then
-            callback(true)
-        end
-    end
-
-    -- Apply each feature that needs to initialize itself
+    task.wait(1)
     if settings.safeSpawn then
         local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
         local hrp = char:WaitForChild("HumanoidRootPart",5)
-        if hrp then
-            hrp.CFrame = CFrame.new(safeSpawnCoords + Vector3.new(0,3,0))
-        end
+        if hrp then hrp.CFrame = CFrame.new(hubSpawnLocation + Vector3.new(0,200,0)) end
     end
-
     if settings.speedBoost then
         local char = LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum then hum.WalkSpeed = 700 end
     end
-
-    if settings.nightMode then
-        game:GetService("Lighting").ClockTime = 20
-    end
-
+    if settings.nightMode then game:GetService("Lighting").ClockTime = 20 end
     if settings.walkOnWater then
         for _, obj in pairs(workspace:GetChildren()) do
-            if obj:IsA("BasePart") and obj.Name == "Part" then
-                obj.CanCollide = true
-            end
-        end
-        local borderWalls = workspace:FindFirstChild("BorderWalls")
-        if borderWalls then
-            for _, obj in pairs(borderWalls:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    obj.CanCollide = false
-                end
-            end
+            if obj:IsA("BasePart") and obj.Name == "Part" then obj.CanCollide = true end
         end
     end
-
-    if settings.showStatsUI then
-        spawnStatsMonitor()
-    end
+    if settings.showStatsUI then spawnStatsMonitor() end
 end)
